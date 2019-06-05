@@ -1,3 +1,5 @@
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -14,8 +16,9 @@ module Data.Aeson.Tagged
     FromJSON(..),
     ToJSON(..),
 
-    -- * Predefined tags
+    -- * Interop between aeson and tagged-aeson
     Aeson,
+    TaggedAeson(..), fromTaggedAeson,
 
     -- * Defining instances
     -- $generic
@@ -24,24 +27,28 @@ module Data.Aeson.Tagged
     deriveFromJSON,
     -- ** Internals
     addTag,
+
+    -- * Combinators
+    (.:), (.:?), (.:!),
+    A.withObject, A.withText, A.withArray, A.withScientific, A.withBool,
 )
 where
 
 
 import BasePrelude
+import qualified Data.Vector as V
+import Data.Text (Text)
+import Data.Generics.Uniplate.Data (transformBi)
+import Language.Haskell.TH
+
 -- aeson
 import qualified Data.Aeson          as A
 import qualified Data.Aeson.Types    as A
 import qualified Data.Aeson.Internal as A
 import qualified Data.Aeson.TH       as A
-import Data.Aeson (Encoding, Value(..))
+import Data.Aeson (Encoding, Object, Value(..))
 import Data.Aeson.Types (Parser, typeMismatch)
 import qualified Data.Aeson.Encoding as E
--- template-haskell
-import Language.Haskell.TH
--- other stuff
-import qualified Data.Vector as V
-import Data.Generics.Uniplate.Data (transformBi)
 
 
 ----------------------------------------------------------------------------
@@ -54,7 +61,7 @@ import Data.Generics.Uniplate.Data (transformBi)
 -- can write your own instances of these classes, or you can use
 -- 'deriveJSON' to autoderive them. Note that generic instances don't work.
 
-class FromJSON tag a where
+class FromJSON (tag :: k) a where
     parseJSON :: Value -> Parser a
 
     parseJSONList :: Value -> Parser [a]
@@ -65,7 +72,7 @@ class FromJSON tag a where
 
     parseJSONList v = typeMismatch "[a]" v
 
-class ToJSON tag a where
+class ToJSON (tag :: k) a where
     toJSON :: a -> Value
 
     toEncoding :: a -> Encoding
@@ -81,11 +88,11 @@ class ToJSON tag a where
     {-# INLINE toEncodingList #-}
 
 ----------------------------------------------------------------------------
--- Predefined tags
+-- Interop between aeson and tagged-aeson
 ----------------------------------------------------------------------------
 
--- | The tag for original Aeson instances. You can use @parseJSON \@Aeson@
--- and @toJSON \@Aeson@ to get the original behavior.
+-- | The tag for original @aeson@ instances. You can use @parseJSON \@Aeson@
+-- and @toJSON \@Aeson@ to get aeson's parsing behavior.
 data Aeson
 
 instance A.FromJSON a => FromJSON Aeson a where
@@ -97,6 +104,22 @@ instance A.ToJSON a => ToJSON Aeson a where
     toEncoding = A.toEncoding
     toJSONList = A.toJSONList
     toEncodingList = A.toEncodingList
+
+-- | A newtype wrapper to use tagged-aeson instances with functions from
+-- @aeson@ (or @yaml@).
+newtype TaggedAeson (tag :: k) a = TaggedAeson a
+    deriving (Eq, Ord, Show)
+
+fromTaggedAeson :: TaggedAeson tag a -> a
+fromTaggedAeson (TaggedAeson a) = a
+
+instance FromJSON tag a => A.FromJSON (TaggedAeson tag a) where
+    parseJSON =
+        coerce @(Value -> Parser a) @(Value -> Parser (TaggedAeson tag a))
+        (parseJSON @tag)
+    parseJSONList =
+        coerce @(Value -> Parser [a]) @(Value -> Parser [TaggedAeson tag a])
+        (parseJSONList @tag)
 
 ----------------------------------------------------------------------------
 -- Defining instances
@@ -184,6 +207,50 @@ If the result has any FromJSON/ToJSON constraints from Aeson, it will not compil
 
 todo: check what the different encoding of 'String' will change (will it change tags? I guess it shouldn't)
 -}
+
+----------------------------------------------------------------------------
+-- Reimplementations
+----------------------------------------------------------------------------
+
+-- | Retrieve the value associated with the given key of an 'Object'.
+-- The result is 'empty' if the key is not present or the value cannot
+-- be converted to the desired type.
+--
+-- This accessor is appropriate if the key and value /must/ be present
+-- in an object for it to be valid.  If the key and value are
+-- optional, use '.:?' instead.
+(.:) :: forall tag a. (FromJSON tag a) => Object -> Text -> Parser a
+(.:) = A.explicitParseField (parseJSON @tag)
+{-# INLINE (.:) #-}
+
+-- | Retrieve the value associated with the given key of an 'Object'. The
+-- result is 'Nothing' if the key is not present or if its value is 'Null',
+-- or 'empty' if the value cannot be converted to the desired type.
+--
+-- This accessor is most useful if the key and value can be absent
+-- from an object without affecting its validity.  If the key and
+-- value are mandatory, use '.:' instead.
+(.:?) :: forall tag a. (FromJSON tag a) => Object -> Text -> Parser (Maybe a)
+(.:?) = A.explicitParseFieldMaybe (parseJSON @tag)
+{-# INLINE (.:?) #-}
+
+{-
+(.:?) :: Object -> Text -> (forall tag a. FromJSON tag a => Parser (Maybe a))
+(.:?) o f =
+  let foo :: forall tag a. (FromJSON tag a) => Parser (Maybe a)
+      foo = A.explicitParseFieldMaybe (parseJSON @tag) o f
+  in foo
+-}
+
+-- | Retrieve the value associated with the given key of an 'Object'.
+-- The result is 'Nothing' if the key is not present or 'empty' if the
+-- value cannot be converted to the desired type.
+--
+-- This differs from '.:?' by attempting to parse 'Null' the same as any
+-- other JSON value, instead of interpreting it as 'Nothing'.
+(.:!) :: forall tag a. (FromJSON tag a) => Object -> Text -> Parser (Maybe a)
+(.:!) = A.explicitParseFieldMaybe' (parseJSON @tag)
+{-# INLINE (.:!) #-}
 
 ----------------------------------------------------------------------------
 -- Assorted stuff ripped off from Aeson
