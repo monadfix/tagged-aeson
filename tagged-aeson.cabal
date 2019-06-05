@@ -1,5 +1,5 @@
 name:                tagged-aeson
-version:             0.1.0
+version:             1.0
 synopsis:            Have many Aeson instances for the same type!
 description:
   This package provides alternative 'FromJSON' and 'ToJSON' classes
@@ -9,27 +9,27 @@ homepage:            http://github.com/aelve/tagged-aeson
 bug-reports:         http://github.com/aelve/tagged-aeson/issues
 license:             BSD3
 license-file:        LICENSE
-author:              Artyom
-maintainer:          yom@artyom.me
--- copyright:           
+author:              Artyom Kazak
+maintainer:          Monadfix <hi@monadfix.io>
+-- copyright:
 category:            Text, Web, JSON
-tested-with:         GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2
+tested-with:         GHC == 8.6.4
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
 cabal-version:       >=1.10
 
 source-repository head
   type:                git
-  location:            git://github.com/aelve/tagged-aeson.git
+  location:            git://github.com/monadfix/tagged-aeson.git
 
 library
   exposed-modules:     Data.Aeson.Tagged
-  -- other-modules:       
-  -- other-extensions:    
+  -- other-modules:
+  -- other-extensions:
   build-depends:       aeson >=1.1.2.0 && <=1.2.3.0
                      , base >=4.8 && <5
                      , base-prelude
-                     , template-haskell
+                     , template-haskell >=2.12 && <2.15
                      , uniplate
                      , vector
   ghc-options:         -Wall -fno-warn-unused-do-bind
