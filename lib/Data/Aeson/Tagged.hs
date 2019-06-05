@@ -9,21 +9,21 @@
 
 module Data.Aeson.Tagged
 (
-  -- * Classes
-  -- $classes
-  FromJSON(..),
-  ToJSON(..),
+    -- * Classes
+    -- $classes
+    FromJSON(..),
+    ToJSON(..),
 
-  -- * Predefined tags
-  Aeson,
+    -- * Predefined tags
+    Aeson,
 
-  -- * Defining instances
-  -- $generic
-  deriveJSON,
-  deriveToJSON,
-  deriveFromJSON,
-  -- ** Internals
-  addTag,
+    -- * Defining instances
+    -- $generic
+    deriveJSON,
+    deriveToJSON,
+    deriveFromJSON,
+    -- ** Internals
+    addTag,
 )
 where
 
