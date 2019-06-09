@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -6,6 +11,8 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 
@@ -28,28 +35,33 @@ module Data.Aeson.Tagged
     -- ** Internals
     addTag,
 
+    -- * By
+    untag,
+    retag,
+    by,
+
     -- * Combinators
     (.:), (.:?), (.:!),
-    A.withObject, A.withText, A.withArray, A.withScientific, A.withBool,
+    withObject, withText, withArray, withScientific, withBool,
+
+    -- * Internals
+    Parser(..),
 )
 where
 
 
 import BasePrelude
-import qualified Data.Vector as V
 import Data.Text (Text)
 import Data.Generics.Uniplate.Data (transformBi)
 import Language.Haskell.TH
+import Data.Scientific (Scientific)
 
 -- aeson
 import qualified Data.Aeson          as A
 import qualified Data.Aeson.Types    as A
-import qualified Data.Aeson.Internal as A
 import qualified Data.Aeson.TH       as A
-import Data.Aeson (Encoding, Object, Value(..))
-import Data.Aeson.Types (Parser, typeMismatch)
+import Data.Aeson (Encoding, Object, Array, Value(..))
 import qualified Data.Aeson.Encoding as E
-
 
 ----------------------------------------------------------------------------
 -- Classes
@@ -62,15 +74,13 @@ import qualified Data.Aeson.Encoding as E
 -- 'deriveJSON' to autoderive them. Note that generic instances don't work.
 
 class FromJSON (tag :: k) a where
-    parseJSON :: Value -> Parser a
+    parseJSON :: Value -> Parser tag a
 
-    parseJSONList :: Value -> Parser [a]
-    parseJSONList (Array a)
-        = zipWithM (parseIndexedJSON (parseJSON @tag)) [0..]
-        . V.toList
-        $ a
-
-    parseJSONList v = typeMismatch "[a]" v
+    parseJSONList :: Value -> Parser tag [a]
+    parseJSONList =
+        coerce @(Value -> A.Parser [TaggedAeson tag a])
+               @(Value -> Parser tag [a])
+        A.parseJSONList
 
 class ToJSON (tag :: k) a where
     toJSON :: a -> Value
@@ -96,8 +106,15 @@ class ToJSON (tag :: k) a where
 data Aeson
 
 instance A.FromJSON a => FromJSON Aeson a where
-    parseJSON = A.parseJSON
-    parseJSONList = A.parseJSONList
+    parseJSON =
+        coerce @(Value -> A.Parser a)
+               @(Value -> Parser Aeson a)
+        A.parseJSON
+
+    parseJSONList =
+        coerce @(Value -> A.Parser [a])
+               @(Value -> Parser Aeson [a])
+        A.parseJSONList
 
 instance A.ToJSON a => ToJSON Aeson a where
     toJSON = A.toJSON
@@ -110,16 +127,19 @@ instance A.ToJSON a => ToJSON Aeson a where
 newtype TaggedAeson (tag :: k) a = TaggedAeson a
     deriving (Eq, Ord, Show)
 
-fromTaggedAeson :: TaggedAeson tag a -> a
-fromTaggedAeson (TaggedAeson a) = a
+fromTaggedAeson :: forall tag a. TaggedAeson tag a -> a
+fromTaggedAeson = coerce
 
 instance FromJSON tag a => A.FromJSON (TaggedAeson tag a) where
     parseJSON =
-        coerce @(Value -> Parser a) @(Value -> Parser (TaggedAeson tag a))
-        (parseJSON @tag)
+        coerce @(Value -> Parser tag a)
+               @(Value -> A.Parser (TaggedAeson tag a))
+        parseJSON
+
     parseJSONList =
-        coerce @(Value -> Parser [a]) @(Value -> Parser [TaggedAeson tag a])
-        (parseJSONList @tag)
+        coerce @(Value -> Parser tag [a])
+               @(Value -> A.Parser [TaggedAeson tag a])
+        parseJSONList
 
 ----------------------------------------------------------------------------
 -- Defining instances
@@ -209,8 +229,47 @@ todo: check what the different encoding of 'String' will change (will it change 
 -}
 
 ----------------------------------------------------------------------------
+-- By
+----------------------------------------------------------------------------
+
+class Tag (tag :: k1) a where
+    type Untagged (tag :: k1) a
+    type Retagged (tag :: k1) (tag' :: k2) a
+
+    untag :: a -> Untagged tag a
+    default untag :: Coercible a (Untagged tag a) => a -> Untagged tag a
+    untag = coerce
+    {-# INLINE untag #-}
+
+    retag' :: a -> Retagged tag tag' a
+    default retag' :: Coercible a (Retagged tag tag' a)
+                   => a -> Retagged tag tag' a
+    retag' = coerce
+    {-# INLINE retag' #-}
+
+    by :: a -> a
+    by = id
+    {-# INLINE by #-}
+
+instance Tag tag (TaggedAeson tag a) where
+    type Untagged tag (TaggedAeson tag a) = a
+    type Retagged tag tag' (TaggedAeson tag a) = TaggedAeson tag' a
+
+instance Tag tag (Parser tag a) where
+    type Untagged tag (Parser tag a) = A.Parser a
+    type Retagged tag tag' (Parser tag a) = Parser tag' a
+
+-- TODO: can this be moved into the class?
+retag :: forall tag tag' a. Tag tag a => a -> Retagged tag tag' a
+retag = retag' @tag @a @tag'
+
+----------------------------------------------------------------------------
 -- Reimplementations
 ----------------------------------------------------------------------------
+
+newtype Parser (tag :: k) a = Parser (A.Parser a)
+    deriving newtype (Functor, Applicative, Alternative, Monad,
+                      MonadFail, MonadPlus, Semigroup, Monoid)
 
 -- | Retrieve the value associated with the given key of an 'Object'.
 -- The result is 'empty' if the key is not present or the value cannot
@@ -219,8 +278,9 @@ todo: check what the different encoding of 'String' will change (will it change 
 -- This accessor is appropriate if the key and value /must/ be present
 -- in an object for it to be valid.  If the key and value are
 -- optional, use '.:?' instead.
-(.:) :: forall tag a. (FromJSON tag a) => Object -> Text -> Parser a
-(.:) = A.explicitParseField (parseJSON @tag)
+(.:) :: forall tag a. (FromJSON tag a)
+     => Object -> Text -> Parser tag a
+(.:) = coerce @(Object -> Text -> A.Parser (TaggedAeson tag a)) (A..:)
 {-# INLINE (.:) #-}
 
 -- | Retrieve the value associated with the given key of an 'Object'. The
@@ -230,17 +290,10 @@ todo: check what the different encoding of 'String' will change (will it change 
 -- This accessor is most useful if the key and value can be absent
 -- from an object without affecting its validity.  If the key and
 -- value are mandatory, use '.:' instead.
-(.:?) :: forall tag a. (FromJSON tag a) => Object -> Text -> Parser (Maybe a)
-(.:?) = A.explicitParseFieldMaybe (parseJSON @tag)
+(.:?) :: forall tag a. (FromJSON tag a)
+      => Object -> Text -> Parser tag (Maybe a)
+(.:?) = coerce @(Object -> Text -> A.Parser (Maybe (TaggedAeson tag a))) (A..:?)
 {-# INLINE (.:?) #-}
-
-{-
-(.:?) :: Object -> Text -> (forall tag a. FromJSON tag a => Parser (Maybe a))
-(.:?) o f =
-  let foo :: forall tag a. (FromJSON tag a) => Parser (Maybe a)
-      foo = A.explicitParseFieldMaybe (parseJSON @tag) o f
-  in foo
--}
 
 -- | Retrieve the value associated with the given key of an 'Object'.
 -- The result is 'Nothing' if the key is not present or 'empty' if the
@@ -248,14 +301,57 @@ todo: check what the different encoding of 'String' will change (will it change 
 --
 -- This differs from '.:?' by attempting to parse 'Null' the same as any
 -- other JSON value, instead of interpreting it as 'Nothing'.
-(.:!) :: forall tag a. (FromJSON tag a) => Object -> Text -> Parser (Maybe a)
-(.:!) = A.explicitParseFieldMaybe' (parseJSON @tag)
+(.:!) :: forall tag a. (FromJSON tag a)
+      => Object -> Text -> Parser tag (Maybe a)
+(.:!) = coerce @(Object -> Text -> A.Parser (Maybe (TaggedAeson tag a))) (A..:!)
 {-# INLINE (.:!) #-}
 
-----------------------------------------------------------------------------
--- Assorted stuff ripped off from Aeson
-----------------------------------------------------------------------------
+withObject
+    :: forall tag a
+     . String
+    -> (Object -> Parser tag a)
+    -> Value
+    -> Parser tag a
+withObject =
+    coerce @(String -> (Object -> A.Parser a) -> Value -> A.Parser a)
+    A.withObject
 
-parseIndexedJSON :: (Value -> Parser a) -> Int -> Value -> Parser a
-parseIndexedJSON p idx value = p value A.<?> A.Index idx
-{-# INLINE parseIndexedJSON #-}
+withText
+    :: forall tag a
+     . String
+    -> (Text -> Parser tag a)
+    -> Value
+    -> Parser tag a
+withText =
+    coerce @(String -> (Text -> A.Parser a) -> Value -> A.Parser a)
+    A.withText
+
+withArray
+    :: forall tag a
+     . String
+    -> (Array -> Parser tag a)
+    -> Value
+    -> Parser tag a
+withArray =
+    coerce @(String -> (Array -> A.Parser a) -> Value -> A.Parser a)
+    A.withArray
+
+withScientific
+    :: forall tag a
+     . String
+    -> (Scientific -> Parser tag a)
+    -> Value
+    -> Parser tag a
+withScientific =
+    coerce @(String -> (Scientific -> A.Parser a) -> Value -> A.Parser a)
+    A.withScientific
+
+withBool
+    :: forall tag a
+     . String
+    -> (Bool -> Parser tag a)
+    -> Value
+    -> Parser tag a
+withBool =
+    coerce @(String -> (Bool -> A.Parser a) -> Value -> A.Parser a)
+    A.withBool

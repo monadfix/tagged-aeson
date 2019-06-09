@@ -26,13 +26,14 @@ library
   exposed-modules:     Data.Aeson.Tagged
   -- other-modules:
   -- other-extensions:
-  build-depends:       aeson >=1.1.2.0 && <=1.2.3.0
+  build-depends:       aeson
                      , base >=4.8 && <5
                      , base-prelude
+                     , scientific
                      , template-haskell >=2.12 && <2.15
                      , text
                      , uniplate
-                     , vector
+                     , unordered-containers
   ghc-options:         -Wall -fno-warn-unused-do-bind
   hs-source-dirs:      lib
   default-language:    Haskell2010
