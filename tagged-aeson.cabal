@@ -5,8 +5,8 @@ description:
   This package provides alternative 'FromJSON' and 'ToJSON' classes
   that come equipped with a tag, which lets you have several different
   Aeson instances for the same type.
-homepage:            http://github.com/aelve/tagged-aeson
-bug-reports:         http://github.com/aelve/tagged-aeson/issues
+homepage:            http://github.com/monadfix/tagged-aeson
+bug-reports:         http://github.com/monadfix/tagged-aeson/issues
 license:             BSD3
 license-file:        LICENSE
 author:              Artyom Kazak
