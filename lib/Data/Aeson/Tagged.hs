@@ -55,11 +55,13 @@ import Data.Text (Text)
 import Data.Generics.Uniplate.Data (transformBi)
 import Language.Haskell.TH
 import Data.Scientific (Scientific)
+import qualified Data.Vector as V
 
 -- aeson
 import qualified Data.Aeson          as A
 import qualified Data.Aeson.Types    as A
 import qualified Data.Aeson.TH       as A
+import qualified Data.Aeson.Internal as A
 import Data.Aeson (Encoding, Object, Array, Value(..))
 import qualified Data.Aeson.Encoding as E
 
@@ -78,9 +80,9 @@ class FromJSON (tag :: k) a where
 
     parseJSONList :: Value -> Parser tag [a]
     parseJSONList =
-        coerce @(Value -> A.Parser [TaggedAeson tag a])
-               @(Value -> Parser tag [a])
-        A.parseJSONList
+      withArray "[]" $ \a ->
+        zipWithM (parseIndexedJSON parseJSON) [0..] $
+        V.toList a
 
 class ToJSON (tag :: k) a where
     toJSON :: a -> Value
@@ -136,6 +138,8 @@ instance FromJSON tag a => A.FromJSON (TaggedAeson tag a) where
                @(Value -> A.Parser (TaggedAeson tag a))
         parseJSON
 
+    -- TODO: I'm worried that there's too much jumping between FromJSON and
+    -- A.FromJSON instances when parsing e.g. @TaggedAeson tag [Foo]@
     parseJSONList =
         coerce @(Value -> Parser tag [a])
                @(Value -> A.Parser [TaggedAeson tag a])
@@ -355,3 +359,14 @@ withBool
 withBool =
     coerce @(String -> (Bool -> A.Parser a) -> Value -> A.Parser a)
     A.withBool
+
+----------------------------------------------------------------------------
+-- Internal
+----------------------------------------------------------------------------
+
+parseIndexedJSON :: (Value -> Parser tag a) -> Int -> Value -> Parser tag a
+parseIndexedJSON p idx value = p value <?> A.Index idx
+{-# INLINE parseIndexedJSON #-}
+
+(<?>) :: forall tag a. Parser tag a -> A.JSONPathElement -> Parser tag a
+(<?>) = coerce @(A.Parser a -> A.JSONPathElement -> A.Parser a) (A.<?>)
