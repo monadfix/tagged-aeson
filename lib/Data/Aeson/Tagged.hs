@@ -78,9 +78,9 @@ import qualified Data.Aeson.Encoding as E
 -- 'deriveJSON' to autoderive them. Note that generic instances don't work.
 
 class FromJSON (tag :: k) a where
-    parseJSON :: Value tag -> Parser tag a
+    parseJSON :: Value any -> Parser tag a
 
-    parseJSONList :: Value tag -> Parser tag [a]
+    parseJSONList :: Value any -> Parser tag [a]
     parseJSONList =
       withArray "[]" $ \a ->
         zipWithM (parseIndexedJSON parseJSON) [0..] $
@@ -289,8 +289,8 @@ type Array tag = V.Vector (Value tag)
 -- This accessor is appropriate if the key and value /must/ be present
 -- in an object for it to be valid.  If the key and value are
 -- optional, use '.:?' instead.
-(.:) :: forall tag a. (FromJSON tag a)
-     => Object tag -> Text -> Parser tag a
+(.:) :: forall tag a any. (FromJSON tag a)
+     => Object any -> Text -> Parser tag a
 (.:) = coerce @(A.Object -> Text -> A.Parser (TaggedAeson tag a)) (A..:)
 {-# INLINE (.:) #-}
 
@@ -301,8 +301,8 @@ type Array tag = V.Vector (Value tag)
 -- This accessor is most useful if the key and value can be absent
 -- from an object without affecting its validity.  If the key and
 -- value are mandatory, use '.:' instead.
-(.:?) :: forall tag a. (FromJSON tag a)
-      => Object tag -> Text -> Parser tag (Maybe a)
+(.:?) :: forall tag a any. (FromJSON tag a)
+      => Object any -> Text -> Parser tag (Maybe a)
 (.:?) = coerce @(A.Object -> Text -> A.Parser (Maybe (TaggedAeson tag a))) (A..:?)
 {-# INLINE (.:?) #-}
 
@@ -312,56 +312,56 @@ type Array tag = V.Vector (Value tag)
 --
 -- This differs from '.:?' by attempting to parse 'Null' the same as any
 -- other JSON value, instead of interpreting it as 'Nothing'.
-(.:!) :: forall tag a. (FromJSON tag a)
-      => Object tag -> Text -> Parser tag (Maybe a)
+(.:!) :: forall tag a any. (FromJSON tag a)
+      => Object any -> Text -> Parser tag (Maybe a)
 (.:!) = coerce @(A.Object -> Text -> A.Parser (Maybe (TaggedAeson tag a))) (A..:!)
 {-# INLINE (.:!) #-}
 
 withObject
-    :: forall tag a
+    :: forall tag a any
      . String
-    -> (Object tag -> Parser tag a)
-    -> Value tag
+    -> (Object any -> Parser tag a)
+    -> Value any
     -> Parser tag a
 withObject =
     coerce @(String -> (A.Object -> A.Parser a) -> A.Value -> A.Parser a)
     A.withObject
 
 withText
-    :: forall tag a
+    :: forall tag a any
      . String
     -> (Text -> Parser tag a)
-    -> Value tag
+    -> Value any
     -> Parser tag a
 withText =
     coerce @(String -> (Text -> A.Parser a) -> A.Value -> A.Parser a)
     A.withText
 
 withArray
-    :: forall tag a
+    :: forall tag a any
      . String
-    -> (Array tag -> Parser tag a)
-    -> Value tag
+    -> (Array any -> Parser tag a)
+    -> Value any
     -> Parser tag a
 withArray =
     coerce @(String -> (A.Array -> A.Parser a) -> A.Value -> A.Parser a)
     A.withArray
 
 withScientific
-    :: forall tag a
+    :: forall tag a any
      . String
     -> (Scientific -> Parser tag a)
-    -> Value tag
+    -> Value any
     -> Parser tag a
 withScientific =
     coerce @(String -> (Scientific -> A.Parser a) -> A.Value -> A.Parser a)
     A.withScientific
 
 withBool
-    :: forall tag a
+    :: forall tag a any
      . String
     -> (Bool -> Parser tag a)
-    -> Value tag
+    -> Value any
     -> Parser tag a
 withBool =
     coerce @(String -> (Bool -> A.Parser a) -> A.Value -> A.Parser a)
@@ -371,7 +371,7 @@ withBool =
 -- Internal
 ----------------------------------------------------------------------------
 
-parseIndexedJSON :: (Value tag -> Parser tag a) -> Int -> Value tag -> Parser tag a
+parseIndexedJSON :: (Value any -> Parser tag a) -> Int -> Value any -> Parser tag a
 parseIndexedJSON p idx value = p value <?> A.Index idx
 {-# INLINE parseIndexedJSON #-}
 
