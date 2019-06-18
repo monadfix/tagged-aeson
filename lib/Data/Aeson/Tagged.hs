@@ -12,6 +12,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -40,9 +41,13 @@ module Data.Aeson.Tagged
     retag,
     by,
 
-    -- * Combinators
+    -- * Parsing combinators
     (.:), (.:?), (.:!),
     withObject, withText, withArray, withScientific, withBool,
+
+    -- * Encoding combinators
+    KeyValue(..),
+    object,
 
     -- * Internals
     Parser(..),
@@ -143,6 +148,12 @@ instance FromJSON tag a => A.FromJSON (TaggedAeson tag a) where
     -- TODO: I'm worried that there's too much jumping between FromJSON and
     -- A.FromJSON instances when parsing e.g. @TaggedAeson tag [Foo]@
     parseJSONList = coerce @(Value tag -> Parser tag [a]) parseJSONList
+
+instance ToJSON tag a => A.ToJSON (TaggedAeson tag a) where
+    toJSON = coerce @(a -> Value tag) toJSON
+    toJSONList = coerce @([a] -> Value tag) toJSONList
+    toEncoding = coerce @(a -> Encoding tag) toEncoding
+    toEncodingList = coerce @([a] -> Encoding tag) toEncodingList
 
 ----------------------------------------------------------------------------
 -- Defining instances
@@ -262,6 +273,26 @@ instance Tag tag (Parser tag a) where
     type Untagged tag (Parser tag a) = A.Parser a
     type Retagged tag tag' (Parser tag a) = Parser tag' a
 
+instance Tag tag (Value tag) where
+    type Untagged tag (Value tag) = A.Value
+    type Retagged tag tag' (Value tag) = Value tag'
+
+instance Tag tag (Object tag) where
+    type Untagged tag (Object tag) = A.Object
+    type Retagged tag tag' (Object tag) = Object tag'
+
+instance Tag tag (Encoding tag) where
+    type Untagged tag (Encoding tag) = A.Encoding
+    type Retagged tag tag' (Encoding tag) = Encoding tag'
+
+instance Tag tag (Series tag) where
+    type Untagged tag (Series tag) = A.Series
+    type Retagged tag tag' (Series tag) = Series tag'
+
+instance Tag tag (Pair tag) where
+    type Untagged tag (Pair tag) = A.Pair
+    type Retagged tag tag' (Pair tag) = Pair tag'
+
 -- TODO: can this be moved into the class?
 retag :: forall tag tag' a. Tag tag a => a -> Retagged tag tag' a
 retag = retag' @tag @a @tag'
@@ -283,9 +314,42 @@ newtype Value (tag :: k) = Value A.Value
 newtype Encoding (tag :: k) = Encoding A.Encoding
     deriving newtype (Eq, Ord, Show)
 
+newtype Series (tag :: k) = Series A.Series
+    deriving newtype (Semigroup, Monoid)
+
+type Pair tag = (Text, Value tag)
+
 type Object tag = HM.HashMap Text (Value tag)
 
 type Array tag = V.Vector (Value tag)
+
+----------------------------------------------------------------------------
+-- Value instances
+----------------------------------------------------------------------------
+
+instance FromJSON tag (Value any) where
+    parseJSON = pure . coerce
+    {-# INLINE parseJSON #-}
+
+instance ToJSON tag (Value any) where
+    toJSON = coerce
+    {-# INLINE toJSON #-}
+    toEncoding = coerce E.value
+    {-# INLINE toEncoding #-}
+
+instance A.FromJSON (Value tag) where
+    parseJSON = pure . coerce
+    {-# INLINE parseJSON #-}
+
+instance A.ToJSON (Value tag) where
+    toJSON = coerce
+    {-# INLINE toJSON #-}
+    toEncoding = coerce E.value
+    {-# INLINE toEncoding #-}
+
+----------------------------------------------------------------------------
+-- Combinators
+----------------------------------------------------------------------------
 
 -- | Retrieve the value associated with the given key of an 'Object'.
 -- The result is 'empty' if the key is not present or the value cannot
@@ -371,6 +435,36 @@ withBool
 withBool =
     coerce @(String -> (Bool -> A.Parser a) -> A.Value -> A.Parser a)
     A.withBool
+
+----------------------------------------------------------------------------
+-- Encoding combinators
+----------------------------------------------------------------------------
+
+-- | A key-value pair for encoding a JSON object.
+class KeyValue (tag :: k) kv | kv -> tag where
+    (.=) :: ToJSON tag v => Text -> v -> kv
+    infixr 8 .=
+
+instance KeyValue tag (Series tag) where
+    name .= value =
+        coerce E.pair
+            name
+            (toEncoding @tag value)
+    {-# INLINE (.=) #-}
+
+instance KeyValue tag (Pair tag) where
+    name .= value = (name, toJSON value)
+    {-# INLINE (.=) #-}
+
+-- | Constructs a singleton 'HM.HashMap'. For calling functions that
+--   demand an 'Object' for constructing objects. To be used in
+--   conjunction with 'mconcat'. Prefer to use 'object' where possible.
+instance KeyValue tag (Object tag) where
+    name .= value = HM.singleton name (toJSON value)
+    {-# INLINE (.=) #-}
+
+object :: [Pair tag] -> Value tag
+object = coerce A.object
 
 ----------------------------------------------------------------------------
 -- Internal
