@@ -35,6 +35,8 @@ library
                      , uniplate
                      , unordered-containers
                      , vector
+                     , hashable
+                     , deepseq
   ghc-options:         -Wall -fno-warn-unused-do-bind
   hs-source-dirs:      lib
   default-language:    Haskell2010

@@ -59,6 +59,8 @@ import Language.Haskell.TH
 import Data.Scientific (Scientific)
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
+import Control.DeepSeq (NFData)
+import Data.Hashable (Hashable)
 
 -- aeson
 import qualified Data.Aeson          as A
@@ -273,10 +275,13 @@ newtype Parser (tag :: k) a = Parser (A.Parser a)
                       MonadFail, MonadPlus, Semigroup, Monoid)
 
 newtype Value (tag :: k) = Value A.Value
-    -- TODO deriving
+    deriving newtype (Eq, Read, Show, IsString, NFData, Hashable)
+    -- TODO KeyValue instances
+    -- TODO FromJSON, ToJSON instances
+    -- TODO Generic, Lift, Data instances
 
 newtype Encoding (tag :: k) = Encoding A.Encoding
-    -- TODO deriving
+    deriving newtype (Eq, Ord, Show)
 
 type Object tag = HM.HashMap Text (Value tag)
 
