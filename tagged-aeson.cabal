@@ -1,5 +1,5 @@
 name: tagged-aeson
-version: 0.1.0
+version: 1.0.0
 synopsis: Have many Aeson instances for the same type!
 description:
   This package provides alternative 'FromJSON' and 'ToJSON' classes
