@@ -10,6 +10,14 @@ generators that use those instances instead of Aeson's ones.
 Any function expecting a normal `FromJSON` or `ToJSON` constraint can work
 with `tagged-aeson` instances by means of the `TaggedAeson` newtype wrapper.
 
+## Is it usable already?
+
+Somewhat, but it's better to wait until an official release. The API is in
+flux, and feedback is welcome!
+
+_See also: [monadfix/jijo](https://github.com/monadfix/jijo), a more radical
+instance-less approach to bidirectional JSON encoding/decoding._
+
 ## Usecase: avoid orphan instances
 
 You have a [`URI`][URI] in your config type and you want to autoderive a
