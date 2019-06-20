@@ -13,7 +13,8 @@ with `tagged-aeson` instances by means of the `TaggedAeson` newtype wrapper.
 ## Usecase: avoid orphan instances
 
 You have a [`URI`][URI] in your config type and you want to autoderive a
-`FromJSON` instance for the config. Before, you'd write an orphan instance:
+`FromJSON` instance for the config. Without `tagged-aeson`, you'd write an
+orphan instance:
 
 [URI]: http://hackage.haskell.org/package/network-uri/docs/Network-URI.html#t:URI
 
@@ -55,11 +56,12 @@ type – after all, you only need to parse requests, not generate them.
 
 That is, until you start writing tests.
 
-Before: you would define orphan instances for all your request types in the
-testsuite. Or you would write functions `someRequestToJSON`,
-`otherRequestToJSON`, etc, and import them when necessary.
+Without `tagged-aeson`: you would define orphan instances for all your
+request types in the testsuite. Or you would write functions
+`someRequestToJSON`, `otherRequestToJSON`, etc, and import them when
+necessary.
 
-After:
+With `tagged-aeson`:
 
 ```haskell
 data TestOnly a
@@ -75,32 +77,49 @@ instance ToJSON (TestOnly Api) SomeRequest
 
 Coming soon!
 
-## Usecase: modify default Aeson instances
+## Usecase: modify Aeson-provided instances
 
 You are working with a weird API that represents `UTCTime` as
-`/Date(1302547608878)/`. Aeson provides a newtype to handle this case, but
-sometimes you forget to use the newtype.
+`/Date(1302547608878)/`. By default, the serialization for `UTCTime` is
+not what you want, but Aeson provides a newtype to handle this case:
 
-With `tagged-aeson`, you can change the instance:
+```haskell
+data User = User { name :: Text, created :: UTCTime }
+
+instance FromJSON User where
+  parseJSON = withObject "User" $ \o ->
+    name    <- o .: "name"
+    created <- fromDotNetTime <$> o .: "created"
+    pure User{..}
+```
+
+However, you can forget to use the newtype wrapper, leading to hard-to-find
+bugs. With `tagged-aeson`, though, you can just change the instance:
 
 ```
 data WeirdAPI
+
+instance FromJSON WeirdAPI User where
+  parseJSON = withObject "User" $ \o ->
+    name    <- o .: "name"
+    created <- o .: "created"
+    pure User{..}
 
 instance FromJSON WeirdAPI UTCTime where
     parseJSON = fmap fromDotNetTime . using @Aeson parseJSON
 ```
 
-## Usecase: destroy default Aeson instances
-
-You [really don't like](https://github.com/bos/aeson/issues/376) Aeson
-instances for `Maybe`.
-
-The solution is: don't write them! Just don't have them. Ever. With
-`tagged-aeson`, you can. Or you can write them – but add a
-[`TypeError`][TypeError] so that nobody would be able to use them.
+You can also write a stub instance with a [`TypeError`][TypeError] and
+direct users towards one of several existing newtypes.
 
 [TypeError]: https://hackage.haskell.org/package/base/docs/GHC-TypeLits.html#t:TypeError
 
-Before: despair.
+## Usecase: burn down Aeson-provided instances
 
-After: bliss.
+Let's say you [really don't like](https://github.com/bos/aeson/issues/376)
+Aeson instances for `Maybe`.
+
+`tagged-aeson` provides no built-in instances; you can always lift instances
+from Aeson, but you don't have to. Or you can write a stub instance – and,
+again, add a [`TypeError`][TypeError] so that nobody would be able to use
+it. At last!
