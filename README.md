@@ -1,7 +1,7 @@
 # tagged-aeson
 
 [![Hackage](https://img.shields.io/hackage/v/tagged-aeson.svg)](https://hackage.haskell.org/package/tagged-aeson)
-[![Build status](https://secure.travis-ci.org/monadfix/tagged-aeson.svg)](https://travis-ci.org/monadfix/tagged-aeson)
+[![Build status](https://secure.travis-ci.com/monadfix/tagged-aeson.svg)](https://travis-ci.com/monadfix/tagged-aeson)
 [![BSD3 license](https://img.shields.io/badge/license-BSD3-blue.svg)](https://github.com/monadfix/tagged-aeson/blob/master/LICENSE)
 
 This thing provides tagged `FromJSON` and `ToJSON` classes and TH generators
