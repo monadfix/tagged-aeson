@@ -36,7 +36,7 @@ module Data.Aeson.Tagged
     addTag,
 
     -- * Using
-    using,
+    Using(..),
 
     -- * Parsing combinators
     (.:), (.:?), (.:!),
@@ -60,6 +60,10 @@ module Data.Aeson.Tagged
     Parser(..),
     Value(..),
     Encoding(..),
+    Series(..),
+    Object,
+    Array,
+    Pair,
 )
 where
 
@@ -93,6 +97,34 @@ import qualified Data.Aeson.Encoding as E
 -- can write your own instances of these classes, or you can use
 -- 'deriveJSON' to autoderive them. Note that generic instances don't work.
 
+-- | tagged-aeson does not provide any 'FromJSON' instances. You have
+-- several options for writing them:
+--
+-- __Lift instances from Aeson:__
+--
+-- @
+-- 'using' \@'Aeson' (o '.:' "name")
+-- @
+--
+-- @
+-- instance FromJSON Tag Text where
+--     'parseJSON' = 'using' \@'Aeson' 'parseJSON'
+-- @
+--
+-- Note that you should not do this with container types (e.g. lists),
+-- because then inner elements would also be parsed according to the Aeson
+-- instance and not your tagged-aeson instance.
+--
+-- __Use a decoding helper:__
+--
+-- @
+-- accounts \<- 'parseList' =\<\< (o '.:' "accounts")
+-- @
+--
+-- @
+-- instance FromJSON Tag a => FromJSON Tag [a] where
+--     'parseJSON' = 'parseList'
+-- @
 class FromJSON (tag :: k) a where
     parseJSON :: Value any -> Parser tag a
 
@@ -123,11 +155,11 @@ class ToJSON (tag :: k) a where
     {-# INLINE toEncodingList #-}
 
 ----------------------------------------------------------------------------
--- Interop between aeson and tagged-aeson
+-- Interop between Aeson and tagged-aeson
 ----------------------------------------------------------------------------
 
--- | The tag for original @aeson@ instances. You can use @parseJSON \@Aeson@
--- and @toJSON \@Aeson@ to get aeson's parsing behavior.
+-- | The tag for original Aeson instances. You can use @'parseJSON'
+-- \@'Aeson'@ and @'toJSON' \@'Aeson'@ to get Aeson's parsing behavior.
 data Aeson
 
 instance A.FromJSON a => FromJSON Aeson a where
@@ -141,7 +173,7 @@ instance A.ToJSON a => ToJSON Aeson a where
     toEncodingList = coerce (A.toEncodingList @a)
 
 -- | A newtype wrapper to use tagged-aeson instances with functions from
--- @aeson@ (or @yaml@).
+-- Aeson (or @yaml@).
 newtype TaggedAeson (tag :: k) a = TaggedAeson a
     deriving (Eq, Ord, Show)
 
@@ -339,7 +371,7 @@ instance A.ToJSON (Value tag) where
 {-# INLINE (.:) #-}
 
 -- | Retrieve the value associated with the given key of an 'Object'. The
--- result is 'Nothing' if the key is not present or if its value is 'Null',
+-- result is 'Nothing' if the key is not present or if its value is @null@,
 -- or 'empty' if the value cannot be converted to the desired type.
 --
 -- This accessor is most useful if the key and value can be absent
@@ -354,7 +386,7 @@ instance A.ToJSON (Value tag) where
 -- The result is 'Nothing' if the key is not present or 'empty' if the
 -- value cannot be converted to the desired type.
 --
--- This differs from '.:?' by attempting to parse 'Null' the same as any
+-- This differs from '.:?' by attempting to parse @null@ the same as any
 -- other JSON value, instead of interpreting it as 'Nothing'.
 (.:!) :: forall tag a any. (FromJSON tag a)
       => Object any -> Text -> Parser tag (Maybe a)
