@@ -180,6 +180,7 @@ newtype TaggedAeson (tag :: k) a = TaggedAeson a
 fromTaggedAeson :: forall tag a. TaggedAeson tag a -> a
 fromTaggedAeson = coerce
 
+-- | Turns a tagged-aeson instance into an Aeson instance.
 instance FromJSON tag a => A.FromJSON (TaggedAeson tag a) where
     parseJSON = coerce @(Value tag -> Parser tag a) parseJSON
 
@@ -187,6 +188,7 @@ instance FromJSON tag a => A.FromJSON (TaggedAeson tag a) where
     -- A.FromJSON instances when parsing e.g. @TaggedAeson tag [Foo]@
     parseJSONList = coerce @(Value tag -> Parser tag [a]) parseJSONList
 
+-- | Turns a tagged-aeson instance into an Aeson instance.
 instance ToJSON tag a => A.ToJSON (TaggedAeson tag a) where
     toJSON = coerce @(a -> Value tag) toJSON
     toJSONList = coerce @([a] -> Value tag) toJSONList
