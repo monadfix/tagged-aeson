@@ -16,7 +16,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-
 module Data.Aeson.Tagged
 (
     -- * Classes
@@ -64,7 +63,6 @@ module Data.Aeson.Tagged
 )
 where
 
-
 import BasePrelude
 import Data.Text (Text)
 import Data.Generics.Uniplate.Data (transformBi)
@@ -79,7 +77,6 @@ import qualified Data.Sequence as Seq
 import Control.DeepSeq (NFData)
 import Data.Hashable (Hashable)
 
--- aeson
 import qualified Data.Aeson          as A
 import qualified Data.Aeson.Types    as A
 import qualified Data.Aeson.TH       as A
@@ -562,8 +559,6 @@ TODO: ToJSONKey
 
 TODO: can we do without default Value instances?
 -}
-
-
 
 ----------------------------------------------------------------------------
 -- Internal
