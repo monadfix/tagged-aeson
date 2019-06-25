@@ -30,14 +30,15 @@ library
     aeson,
     base >=4.8 && <5,
     base-prelude,
+    containers,
+    deepseq,
+    hashable,
     scientific,
     template-haskell >=2.12 && <2.15,
     text,
     uniplate,
     unordered-containers,
-    vector,
-    hashable,
-    deepseq
+    vector
   ghc-options:
     -Wall
     -Wno-unused-do-bind

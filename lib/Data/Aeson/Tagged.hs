@@ -52,6 +52,16 @@ module Data.Aeson.Tagged
     KeyValue(..),
     object,
 
+    -- * Decoding helpers
+    -- ** Sequences
+    parseList, parseListOf,
+    parseNonEmpty, parseNonEmptyOf,
+    parseVector, parseVectorOf,
+    parseSeq, parseSeqOf,
+    -- ** Sets
+    parseSet, parseSetOf,
+    parseHashSet, parseHashSetOf,
+
     -- * Internals
     Parser(..),
     Value(..),
@@ -65,8 +75,12 @@ import Data.Text (Text)
 import Data.Generics.Uniplate.Data (transformBi)
 import Language.Haskell.TH
 import Data.Scientific (Scientific)
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Set as S
+import qualified Data.HashSet as HS
+import qualified Data.Sequence as Seq
 import Control.DeepSeq (NFData)
 import Data.Hashable (Hashable)
 
@@ -91,10 +105,7 @@ class FromJSON (tag :: k) a where
     parseJSON :: Value any -> Parser tag a
 
     parseJSONList :: Value any -> Parser tag [a]
-    parseJSONList =
-      withArray "[]" $ \a ->
-        zipWithM (parseIndexedJSON parseJSON) [0..] $
-        V.toList a
+    parseJSONList = parseList
 
 class ToJSON (tag :: k) a where
     toJSON :: a -> Value tag
@@ -488,6 +499,127 @@ instance KeyValue tag (Object tag) where
 
 object :: [Pair tag] -> Value tag
 object = coerce A.object
+
+----------------------------------------------------------------------------
+-- Decoding helpers
+----------------------------------------------------------------------------
+
+-- Sequences
+
+parseList
+    :: FromJSON tag a
+    => Value any -> Parser tag [a]
+parseList = parseListOf parseJSON
+{-# INLINE parseList #-}
+
+parseListOf
+    :: (Value any -> Parser tag a) -> Value any -> Parser tag [a]
+parseListOf p = withArray "[]" $
+    zipWithM (parseIndexedJSON p) [0..] .
+    V.toList
+{-# INLINE parseListOf #-}
+
+parseNonEmpty
+    :: FromJSON tag a
+    => Value any -> Parser tag (NE.NonEmpty a)
+parseNonEmpty = parseNonEmptyOf parseJSON
+{-# INLINE parseNonEmpty #-}
+
+parseNonEmptyOf
+    :: (Value any -> Parser tag a) -> Value any -> Parser tag (NE.NonEmpty a)
+parseNonEmptyOf p = withArray "NonEmpty" $
+    (>>= ne) .
+    sequence .
+    zipWith (parseIndexedJSON p) [0..] .
+    V.toList
+  where
+    ne []     = fail "parsing NonEmpty failed, unpexpected empty list"
+    ne (x:xs) = pure (x :| xs)
+{-# INLINE parseNonEmptyOf #-}
+
+parseVector
+    :: FromJSON tag a
+    => Value any -> Parser tag (V.Vector a)
+parseVector = parseVectorOf parseJSON
+{-# INLINE parseVector #-}
+
+parseVectorOf
+    :: (Value any -> Parser tag a) -> Value any -> Parser tag (V.Vector a)
+parseVectorOf p = withArray "Vector" $
+    V.mapM (uncurry $ parseIndexedJSON p) . V.indexed
+{-# INLINE parseVectorOf #-}
+
+parseSeq
+    :: FromJSON tag a
+    => Value any -> Parser tag (Seq.Seq a)
+parseSeq = parseSeqOf parseJSON
+{-# INLINE parseSeq #-}
+
+parseSeqOf
+    :: (Value any -> Parser tag a) -> Value any -> Parser tag (Seq.Seq a)
+parseSeqOf p = withArray "Seq" $
+    fmap Seq.fromList .
+    sequence .
+    zipWith (parseIndexedJSON p) [0..] .
+    V.toList
+{-# INLINE parseSeqOf #-}
+
+-- Sets
+
+parseSet
+    :: (Ord a, FromJSON tag a)
+    => Value any -> Parser tag (S.Set a)
+parseSet = parseSetOf parseJSON
+{-# INLINE parseSet #-}
+
+parseSetOf
+    :: Ord a
+    => (Value any -> Parser tag a) -> Value any -> Parser tag (S.Set a)
+parseSetOf p = fmap S.fromList . parseListOf p
+{-# INLINE parseSetOf #-}
+
+parseHashSet
+    :: (Hashable a, Eq a, FromJSON tag a)
+    => Value any -> Parser tag (HS.HashSet a)
+parseHashSet = parseHashSetOf parseJSON
+{-# INLINE parseHashSet #-}
+
+parseHashSetOf
+    :: (Hashable a, Eq a)
+    => (Value any -> Parser tag a) -> Value any -> Parser tag (HS.HashSet a)
+parseHashSetOf p = fmap HS.fromList . parseListOf p
+{-# INLINE parseHashSetOf #-}
+
+{- TODO
+
+Bool
+Double
+Float
+Int*
+Word*
+String
+Text
+IntSet
+Scientific
+UTCTime
+UUID
+Value
+Maybe
+Tree
+tuples
+Map
+HashMap
+
+note: "This instance includes a bounds check to prevent maliciously large inputs to fill up the memory of the target system. You can newtype Scientific and provide your own instance using withScientific if you want to allow larger inputs."
+
+be careful: `using @Aeson [Foo]` will use Aeson for Foo as well
+
+TODO: ToJSONKey
+
+TODO: can we do without default Value instances?
+-}
+
+
 
 ----------------------------------------------------------------------------
 -- Internal
