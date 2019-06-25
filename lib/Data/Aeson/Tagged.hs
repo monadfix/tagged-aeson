@@ -36,12 +36,7 @@ module Data.Aeson.Tagged
     -- ** Internals
     addTag,
 
-    -- * By
-    untag,
-    retag,
-    by,
-
-    -- * Alternative
+    -- * Using
     using,
 
     -- * Parsing combinators
@@ -257,59 +252,8 @@ todo: check what the different encoding of 'String' will change (will it change 
 -}
 
 ----------------------------------------------------------------------------
--- By
+-- Using
 ----------------------------------------------------------------------------
-
-class Tag (tag :: k1) a where
-    type Untagged (tag :: k1) a
-    type Retagged (tag :: k1) (tag' :: k2) a
-
-    untag :: a -> Untagged tag a
-    default untag :: Coercible a (Untagged tag a) => a -> Untagged tag a
-    untag = coerce
-    {-# INLINE untag #-}
-
-    retag' :: a -> Retagged tag tag' a
-    default retag' :: Coercible a (Retagged tag tag' a)
-                   => a -> Retagged tag tag' a
-    retag' = coerce
-    {-# INLINE retag' #-}
-
-    by :: a -> a
-    by = id
-    {-# INLINE by #-}
-
-instance Tag tag (TaggedAeson tag a) where
-    type Untagged tag (TaggedAeson tag a) = a
-    type Retagged tag tag' (TaggedAeson tag a) = TaggedAeson tag' a
-
-instance Tag tag (Parser tag a) where
-    type Untagged tag (Parser tag a) = A.Parser a
-    type Retagged tag tag' (Parser tag a) = Parser tag' a
-
-instance Tag tag (Value tag) where
-    type Untagged tag (Value tag) = A.Value
-    type Retagged tag tag' (Value tag) = Value tag'
-
-instance Tag tag (Object tag) where
-    type Untagged tag (Object tag) = A.Object
-    type Retagged tag tag' (Object tag) = Object tag'
-
-instance Tag tag (Encoding tag) where
-    type Untagged tag (Encoding tag) = A.Encoding
-    type Retagged tag tag' (Encoding tag) = Encoding tag'
-
-instance Tag tag (Series tag) where
-    type Untagged tag (Series tag) = A.Series
-    type Retagged tag tag' (Series tag) = Series tag'
-
-instance Tag tag (Pair tag) where
-    type Untagged tag (Pair tag) = A.Pair
-    type Retagged tag tag' (Pair tag) = Pair tag'
-
--- TODO: can this be moved into the class?
-retag :: forall tag tag' a. Tag tag a => a -> Retagged tag tag' a
-retag = retag' @tag @a @tag'
 
 class Using tag' tag a' a | a' -> tag', a' tag -> a, a -> tag, a tag' -> a' where
     using :: a' -> a
