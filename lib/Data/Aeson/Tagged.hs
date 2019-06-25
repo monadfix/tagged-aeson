@@ -300,25 +300,25 @@ instance Tag tag (Pair tag) where
 retag :: forall tag tag' a. Tag tag a => a -> Retagged tag tag' a
 retag = retag' @tag @a @tag'
 
-class Using tag tag' a a' | a -> tag, a tag' -> a', a' -> tag', a' tag -> a where
-    using :: a -> a'
-    default using :: Coercible a a' => a -> a'
+class Using tag' tag a' a | a' -> tag', a' tag -> a, a -> tag, a tag' -> a' where
+    using :: a' -> a
+    default using :: Coercible a' a => a' -> a
     using = coerce
     {-# INLINE using #-}
 
-instance Using tag tag' (Parser tag a) (Parser tag' a)
-instance Using tag tag' (Value tag) (Value tag')
-instance Using tag tag' (Object tag) (Object tag')
-instance Using tag tag' (Encoding tag) (Encoding tag')
-instance Using tag tag' (Series tag) (Series tag')
-instance Using tag tag' (Pair tag) (Pair tag')
+instance Using tag' tag (Parser tag' a) (Parser tag a)
+instance Using tag' tag (Value tag') (Value tag)
+instance Using tag' tag (Object tag') (Object tag)
+instance Using tag' tag (Encoding tag') (Encoding tag)
+instance Using tag' tag (Series tag') (Series tag)
+instance Using tag' tag (Pair tag') (Pair tag)
 
-instance Using tag tag' (x -> Parser tag a) (x -> Parser tag' a)
-instance Using tag tag' (x -> Value tag) (x -> Value tag')
-instance Using tag tag' (x -> Object tag) (x -> Object tag')
-instance Using tag tag' (x -> Encoding tag) (x -> Encoding tag')
-instance Using tag tag' (x -> Series tag) (x -> Series tag')
-instance Using tag tag' (x -> Pair tag) (x -> Pair tag')
+instance Using tag' tag (x -> Parser tag' a) (x -> Parser tag a)
+instance Using tag' tag (x -> Value tag') (x -> Value tag)
+instance Using tag' tag (x -> Object tag') (x -> Object tag)
+instance Using tag' tag (x -> Encoding tag') (x -> Encoding tag)
+instance Using tag' tag (x -> Series tag') (x -> Series tag)
+instance Using tag' tag (x -> Pair tag') (x -> Pair tag)
 
 ----------------------------------------------------------------------------
 -- Reimplementations
