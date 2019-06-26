@@ -46,6 +46,10 @@ module Data.Aeson.Tagged
     KeyValue(..),
     object,
 
+    -- * Lifting instances from Aeson
+    WithAeson(..),
+    WithAeson1(..),
+
     -- * Instance-less
     -- ** Lists
     parseList, parseListWith,
@@ -479,22 +483,85 @@ object :: [Pair tag] -> Value tag
 object = coerce A.object
 
 ----------------------------------------------------------------------------
+-- Lifting instances from Aeson
+----------------------------------------------------------------------------
+
+-- |
+-- @
+-- deriving via WithAeson Foo instance FromJSON Tag Foo
+-- @
+newtype WithAeson a = WithAeson a
+
+instance A.FromJSON a => FromJSON tag (WithAeson a) where
+    parseJSON = coerce (A.parseJSON @a)
+    parseJSONList = coerce (A.parseJSONList @a)
+
+instance A.ToJSON a => ToJSON tag (WithAeson a) where
+    toJSON = coerce (A.toJSON @a)
+    toJSONList = coerce (A.toJSONList @a)
+    toEncoding = coerce (A.toEncoding @a)
+    toEncodingList = coerce (A.toEncodingList @a)
+
+newtype WithAeson1 f a = WithAeson1 (f a)
+
+instance (FromJSON tag a, A.FromJSON1 f) => FromJSON tag (WithAeson1 f a) where
+    parseJSON =
+        coerce (A.liftParseJSON @f @a)
+            (parseJSON @tag @a)
+            (parseJSONList @tag @a)
+
+    parseJSONList =
+        coerce (A.liftParseJSONList @f @a)
+            (parseJSON @tag @a)
+            (parseJSONList @tag @a)
+
+instance (ToJSON tag a, A.ToJSON1 f) => ToJSON tag (WithAeson1 f a) where
+    toJSON =
+        coerce (A.liftToJSON @f @a)
+            (toJSON @tag @a)
+            (toJSONList @tag @a)
+
+    toJSONList =
+        coerce (A.liftToJSONList @f @a)
+            (toJSON @tag @a)
+            (toJSONList @tag @a)
+
+    toEncoding =
+        coerce (A.liftToEncoding @f @a)
+            (toEncoding @tag @a)
+            (toEncodingList @tag @a)
+
+    toEncodingList =
+        coerce (A.liftToEncodingList @f @a)
+            (toEncoding @tag @a)
+            (toEncodingList @tag @a)
+
+instance {-# OVERLAPPING #-} (FromJSON tag a, Ord a) => FromJSON tag (WithAeson1 S.Set a) where
+    parseJSON = coerce (parseSet @tag)
+
+instance {-# OVERLAPPING #-} (ToJSON tag a, Ord a) => ToJSON tag (WithAeson1 S.Set a) where
+    toJSON = coerce (setToJSON @tag)
+    toEncoding = coerce (setToEncoding @tag)
+
+-- TODO: HashSet and so on
+
+----------------------------------------------------------------------------
 -- Instance-less
 ----------------------------------------------------------------------------
 
 -- Lists
 
-parseList :: FromJSON tag a => Value any -> Parser tag [a]
+parseList :: forall tag a any. FromJSON tag a => Value any -> Parser tag [a]
 parseList = parseListWith parseJSON
 {-# INLINE parseList #-}
 
-parseListWith :: (Value any -> Parser tag a) -> Value any -> Parser tag [a]
+parseListWith :: forall tag a any. (Value any -> Parser tag a) -> Value any -> Parser tag [a]
 parseListWith p = withArray "[]" $
     zipWithM (parseIndexedJSON p) [0..] . V.toList
 {-# INLINE parseListWith #-}
 
 -- TODO: warn that it doesn't correspond to 'toJSONList'
-listToJSON :: ToJSON tag a => [a] -> Value tag
+listToJSON :: forall tag a. ToJSON tag a => [a] -> Value tag
 listToJSON = listToJSONWith toJSON
 {-# INLINE listToJSON #-}
 
@@ -502,7 +569,7 @@ listToJSONWith :: forall tag a. (a -> Value tag) -> [a] -> Value tag
 listToJSONWith = coerce (A.listValue @a)
 {-# INLINE listToJSONWith #-}
 
-listToEncoding :: ToJSON tag a => [a] -> Encoding tag
+listToEncoding :: forall tag a. ToJSON tag a => [a] -> Encoding tag
 listToEncoding = listToEncodingWith toEncoding
 {-# INLINE listToEncoding #-}
 
@@ -512,11 +579,11 @@ listToEncodingWith = coerce (A.listEncoding @a)
 
 -- NonEmpty
 
-parseNonEmpty :: FromJSON tag a => Value any -> Parser tag (NE.NonEmpty a)
+parseNonEmpty :: forall tag a any. FromJSON tag a => Value any -> Parser tag (NE.NonEmpty a)
 parseNonEmpty = parseNonEmptyWith parseJSON
 {-# INLINE parseNonEmpty #-}
 
-parseNonEmptyWith :: (Value any -> Parser tag a) -> Value any -> Parser tag (NE.NonEmpty a)
+parseNonEmptyWith :: forall tag a any. (Value any -> Parser tag a) -> Value any -> Parser tag (NE.NonEmpty a)
 parseNonEmptyWith p = withArray "NonEmpty" $
     (>>= ne) . sequence .
     zipWith (parseIndexedJSON p) [0..] . V.toList
@@ -525,98 +592,98 @@ parseNonEmptyWith p = withArray "NonEmpty" $
     ne (x:xs) = pure (x :| xs)
 {-# INLINE parseNonEmptyWith #-}
 
-nonEmptyToJSON :: ToJSON tag a => NE.NonEmpty a -> Value tag
+nonEmptyToJSON :: forall tag a. ToJSON tag a => NE.NonEmpty a -> Value tag
 nonEmptyToJSON = nonEmptyToJSONWith toJSON
 {-# INLINE nonEmptyToJSON #-}
 
-nonEmptyToJSONWith :: (a -> Value tag) -> NE.NonEmpty a -> Value tag
+nonEmptyToJSONWith :: forall tag a. (a -> Value tag) -> NE.NonEmpty a -> Value tag
 nonEmptyToJSONWith f = listToJSONWith f . NE.toList
 {-# INLINE nonEmptyToJSONWith #-}
 
-nonEmptyToEncoding :: ToJSON tag a => NE.NonEmpty a -> Encoding tag
+nonEmptyToEncoding :: forall tag a. ToJSON tag a => NE.NonEmpty a -> Encoding tag
 nonEmptyToEncoding = nonEmptyToEncodingWith toEncoding
 {-# INLINE nonEmptyToEncoding #-}
 
-nonEmptyToEncodingWith :: (a -> Encoding tag) -> NE.NonEmpty a -> Encoding tag
+nonEmptyToEncodingWith :: forall tag a. (a -> Encoding tag) -> NE.NonEmpty a -> Encoding tag
 nonEmptyToEncodingWith f = listToEncodingWith f . NE.toList
 {-# INLINE nonEmptyToEncodingWith #-}
 
 -- Vector
 
-parseVector :: FromJSON tag a => Value any -> Parser tag (V.Vector a)
+parseVector :: forall tag a any. FromJSON tag a => Value any -> Parser tag (V.Vector a)
 parseVector = parseVectorWith parseJSON
 {-# INLINE parseVector #-}
 
-parseVectorWith :: (Value any -> Parser tag a) -> Value any -> Parser tag (V.Vector a)
+parseVectorWith :: forall tag a any. (Value any -> Parser tag a) -> Value any -> Parser tag (V.Vector a)
 parseVectorWith p = withArray "Vector" $
     V.mapM (uncurry $ parseIndexedJSON p) . V.indexed
 {-# INLINE parseVectorWith #-}
 
-vectorToJSON :: ToJSON tag a => V.Vector a -> Value tag
+vectorToJSON :: forall tag a. ToJSON tag a => V.Vector a -> Value tag
 vectorToJSON = vectorToJSONWith toJSON
 {-# INLINE vectorToJSON #-}
 
-vectorToJSONWith :: (a -> Value tag) -> V.Vector a -> Value tag
+vectorToJSONWith :: forall tag a. (a -> Value tag) -> V.Vector a -> Value tag
 vectorToJSONWith f = coerce A.Array . V.map f
 {-# INLINE vectorToJSONWith #-}
 
-vectorToEncoding :: ToJSON tag a => V.Vector a -> Encoding tag
+vectorToEncoding :: forall tag a. ToJSON tag a => V.Vector a -> Encoding tag
 vectorToEncoding = vectorToEncodingWith toEncoding
 {-# INLINE vectorToEncoding #-}
 
-vectorToEncodingWith :: (a -> Encoding tag) -> V.Vector a -> Encoding tag
+vectorToEncodingWith :: forall tag a. (a -> Encoding tag) -> V.Vector a -> Encoding tag
 vectorToEncodingWith f = listToEncodingWith f . V.toList
 {-# INLINE vectorToEncodingWith #-}
 
 -- Set
 
-parseSet :: (Ord a, FromJSON tag a) => Value any -> Parser tag (S.Set a)
+parseSet :: forall tag a any. (Ord a, FromJSON tag a) => Value any -> Parser tag (S.Set a)
 parseSet = parseSetWith parseJSON
 {-# INLINE parseSet #-}
 
-parseSetWith :: Ord a => (Value any -> Parser tag a) -> Value any -> Parser tag (S.Set a)
+parseSetWith :: forall tag a any. Ord a => (Value any -> Parser tag a) -> Value any -> Parser tag (S.Set a)
 parseSetWith p = fmap S.fromList . parseListWith p
 {-# INLINE parseSetWith #-}
 
-setToJSON :: ToJSON tag a => S.Set a -> Value tag
+setToJSON :: forall tag a. ToJSON tag a => S.Set a -> Value tag
 setToJSON = setToJSONWith toJSON
 {-# INLINE setToJSON #-}
 
-setToJSONWith :: (a -> Value tag) -> S.Set a -> Value tag
+setToJSONWith :: forall tag a. (a -> Value tag) -> S.Set a -> Value tag
 setToJSONWith f = listToJSONWith f . S.toList
 {-# INLINE setToJSONWith #-}
 
-setToEncoding :: ToJSON tag a => S.Set a -> Encoding tag
+setToEncoding :: forall tag a. ToJSON tag a => S.Set a -> Encoding tag
 setToEncoding = setToEncodingWith toEncoding
 {-# INLINE setToEncoding #-}
 
-setToEncodingWith :: (a -> Encoding tag) -> S.Set a -> Encoding tag
+setToEncodingWith :: forall tag a. (a -> Encoding tag) -> S.Set a -> Encoding tag
 setToEncodingWith f = listToEncodingWith f . S.toList
 {-# INLINE setToEncodingWith #-}
 
 -- HashSet
 
-parseHashSet :: (Hashable a, Eq a, FromJSON tag a) => Value any -> Parser tag (HS.HashSet a)
+parseHashSet :: forall tag a any. (Hashable a, Eq a, FromJSON tag a) => Value any -> Parser tag (HS.HashSet a)
 parseHashSet = parseHashSetWith parseJSON
 {-# INLINE parseHashSet #-}
 
-parseHashSetWith :: (Hashable a, Eq a) => (Value any -> Parser tag a) -> Value any -> Parser tag (HS.HashSet a)
+parseHashSetWith :: forall tag a any. (Hashable a, Eq a) => (Value any -> Parser tag a) -> Value any -> Parser tag (HS.HashSet a)
 parseHashSetWith p = fmap HS.fromList . parseListWith p
 {-# INLINE parseHashSetWith #-}
 
-hashSetToJSON :: ToJSON tag a => HS.HashSet a -> Value tag
+hashSetToJSON :: forall tag a. ToJSON tag a => HS.HashSet a -> Value tag
 hashSetToJSON = hashSetToJSONWith toJSON
 {-# INLINE hashSetToJSON #-}
 
-hashSetToJSONWith :: (a -> Value tag) -> HS.HashSet a -> Value tag
+hashSetToJSONWith :: forall tag a. (a -> Value tag) -> HS.HashSet a -> Value tag
 hashSetToJSONWith f = listToJSONWith f . HS.toList
 {-# INLINE hashSetToJSONWith #-}
 
-hashSetToEncoding :: ToJSON tag a => HS.HashSet a -> Encoding tag
+hashSetToEncoding :: forall tag a. ToJSON tag a => HS.HashSet a -> Encoding tag
 hashSetToEncoding = hashSetToEncodingWith toEncoding
 {-# INLINE hashSetToEncoding #-}
 
-hashSetToEncodingWith :: (a -> Encoding tag) -> HS.HashSet a -> Encoding tag
+hashSetToEncodingWith :: forall tag a. (a -> Encoding tag) -> HS.HashSet a -> Encoding tag
 hashSetToEncodingWith f = listToEncodingWith f . HS.toList
 {-# INLINE hashSetToEncodingWith #-}
 
