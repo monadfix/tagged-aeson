@@ -13,7 +13,7 @@ bug-reports: https://github.com/monadfix/tagged-aeson/issues
 license: BSD3
 license-file: LICENSE
 author: Artyom Kazak
-maintainer: Monadfix <hi@monadfix.io>
+maintainer: Monadfix <hi@monadfix.com>
 category: Text, Web, JSON
 tested-with:
   GHC == 8.6.4
