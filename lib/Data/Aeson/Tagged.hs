@@ -536,14 +536,26 @@ instance (ToJSON tag a, A.ToJSON1 f) => ToJSON tag (WithAeson1 f a) where
             (toEncoding @tag @a)
             (toEncodingList @tag @a)
 
-instance {-# OVERLAPPING #-} (FromJSON tag a, Ord a) => FromJSON tag (WithAeson1 S.Set a) where
+instance {-# OVERLAPPING #-} (FromJSON tag a, Ord a) =>
+         FromJSON tag (WithAeson1 S.Set a) where
     parseJSON = coerce (parseSet @tag)
 
-instance {-# OVERLAPPING #-} (ToJSON tag a, Ord a) => ToJSON tag (WithAeson1 S.Set a) where
+instance {-# OVERLAPPING #-} (ToJSON tag a, Ord a) =>
+         ToJSON tag (WithAeson1 S.Set a) where
     toJSON = coerce (setToJSON @tag)
     toEncoding = coerce (setToEncoding @tag)
 
--- TODO: HashSet and so on
+instance {-# OVERLAPPING #-} (FromJSON tag a, Eq a, Hashable a) =>
+         FromJSON tag (WithAeson1 HS.HashSet a) where
+    parseJSON = coerce (parseHashSet @tag)
+
+instance {-# OVERLAPPING #-} (ToJSON tag a, Eq a, Hashable a) =>
+         ToJSON tag (WithAeson1 HS.HashSet a) where
+    toJSON = coerce (hashSetToJSON @tag)
+    toEncoding = coerce (hashSetToEncoding @tag)
+
+-- TODO: PrimArray, Storable.Vector, Primitive.Vector, Unboxed.Vector
+-- TODO: do we want to handle Ratio?
 
 ----------------------------------------------------------------------------
 -- Instance-less
