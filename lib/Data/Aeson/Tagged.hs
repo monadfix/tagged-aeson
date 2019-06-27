@@ -274,6 +274,8 @@ addTag tag = transformBi rewriteExp . transformBi rewriteType
         , (VarE 'A.parseJSON     , VarE 'parseJSON)
         , (VarE 'A.parseJSONList , VarE 'parseJSONList) ]
 
+-- TODO hide addTag
+
 {-
 keyValuePairWith
 (.=)
@@ -326,6 +328,7 @@ newtype Value (tag :: k) = Value A.Value
     -- TODO KeyValue instances
     -- TODO FromJSON, ToJSON instances
     -- TODO Generic, Lift, Data instances
+    -- TODO add patterns?
 
 newtype Encoding (tag :: k) = Encoding A.Encoding
     deriving newtype (Eq, Ord, Show)
@@ -737,5 +740,6 @@ parseIndexedJSON :: (Value any -> Parser tag a) -> Int -> Value any -> Parser ta
 parseIndexedJSON p idx value = p value <?> A.Index idx
 {-# INLINE parseIndexedJSON #-}
 
+-- TODO export
 (<?>) :: forall tag a. Parser tag a -> A.JSONPathElement -> Parser tag a
 (<?>) = coerce @(A.Parser a -> A.JSONPathElement -> A.Parser a) (A.<?>)

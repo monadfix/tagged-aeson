@@ -44,3 +44,19 @@ library
     -Wno-unused-do-bind
   hs-source-dirs: lib
   default-language: Haskell2010
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+    TaggedSpec
+  build-depends:
+    base,
+    hspec,
+    tagged-aeson
+  build-tool-depends: hspec-discover:hspec-discover
+  ghc-options:
+    -Wall
+    -Wno-unused-do-bind
+  hs-source-dirs: test
+  default-language: Haskell2010
