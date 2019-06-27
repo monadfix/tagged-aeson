@@ -55,10 +55,20 @@ liftingListSpec :: Spec
 liftingListSpec = do
     describe "parseList" $ do
         it "uses tagged-aeson for list elements" $ do
-            parse @Modded @[Text] parseList [j|["a"]|]
+            parse (parseList @Modded @Text) [value|["a"]|]
                 `shouldBe` Error "expected modded text"
-            parse @Modded @[Text] parseList [j|["modded:a", "modded:b"]|]
+            parse (parseList @Modded @Text) [value|["modded:a", "modded:b"]|]
                 `shouldBe` Success ["a", "b"]
+
+    describe "listToJSON" $ do
+        it "uses tagged-aeson for list elements" $ do
+            listToJSON @Modded @Text ["a"]
+                `shouldBe` [value|["modded:a"]|]
+
+    describe "listToEncoding" $ do
+        it "uses tagged-aeson for list elements" $ do
+            listToEncoding @Modded @Text ["a"]
+                `shouldBe` [encoding|["modded:a"]|]
 
 ----------------------------------------------------------------------------
 -- Helpers
@@ -72,7 +82,15 @@ instance FromJSON Modded Text where
             Nothing -> fail "expected modded text"
             Just s' -> pure s'
 
+instance ToJSON Modded Text where
+    toJSON s = using @Aeson (toJSON ("modded:" <> s))
+
 instance GHC.TypeLits.TypeError
              ('GHC.TypeLits.Text "[]@Modded should never be used")
       => FromJSON Modded [a] where
     parseJSON = undefined
+
+instance GHC.TypeLits.TypeError
+             ('GHC.TypeLits.Text "[]@Modded should never be used")
+      => ToJSON Modded [a] where
+    toJSON = undefined
