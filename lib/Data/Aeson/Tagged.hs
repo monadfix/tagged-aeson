@@ -41,6 +41,7 @@ module Data.Aeson.Tagged
     -- * Parsing combinators
     (.:), (.:?), (.:!),
     withObject, withText, withArray, withScientific, withBool,
+    (<?>),
 
     -- * Encoding combinators
     KeyValue(..),
@@ -460,6 +461,9 @@ withBool =
     coerce @(String -> (Bool -> A.Parser a) -> A.Value -> A.Parser a)
     A.withBool
 
+(<?>) :: forall tag a. Parser tag a -> A.JSONPathElement -> Parser tag a
+(<?>) = coerce @(A.Parser a -> A.JSONPathElement -> A.Parser a) (A.<?>)
+
 ----------------------------------------------------------------------------
 -- Encoding combinators
 ----------------------------------------------------------------------------
@@ -744,7 +748,3 @@ TODO: can we do without default Value instances?
 parseIndexedJSON :: (Value any -> Parser tag a) -> Int -> Value any -> Parser tag a
 parseIndexedJSON p idx value = p value <?> A.Index idx
 {-# INLINE parseIndexedJSON #-}
-
--- TODO export
-(<?>) :: forall tag a. Parser tag a -> A.JSONPathElement -> Parser tag a
-(<?>) = coerce @(A.Parser a -> A.JSONPathElement -> A.Parser a) (A.<?>)
