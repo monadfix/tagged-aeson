@@ -36,6 +36,7 @@ library
     scientific,
     template-haskell >=2.12 && <2.15,
     text,
+    th-lift,
     uniplate,
     unordered-containers,
     vector
@@ -50,9 +51,15 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
     TaggedSpec
+    Util
   build-depends:
     base,
     hspec,
+    text,
+    aeson,
+    base-prelude,
+    template-haskell,
+    th-lift,
     tagged-aeson
   build-tool-depends: hspec-discover:hspec-discover
   ghc-options:
