@@ -60,6 +60,7 @@ test-suite tests
     base-prelude,
     template-haskell,
     th-lift,
+    vector,
     tagged-aeson
   build-tool-depends: hspec-discover:hspec-discover
   ghc-options:
