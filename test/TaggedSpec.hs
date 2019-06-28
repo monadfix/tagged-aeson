@@ -56,7 +56,7 @@ spec = do
 ----------------------------------------------------------------------------
 
 liftingListSpec :: Spec
-liftingListSpec = do
+liftingListSpec = describe "explicit list parsers" $ do
     describe "parseList" $ do
         it "uses tagged-aeson for list elements" $ do
             parse (parseList @Modded @Text) [value|["a"]|]
@@ -79,7 +79,7 @@ liftingListSpec = do
 ----------------------------------------------------------------------------
 
 liftingNonEmptySpec :: Spec
-liftingNonEmptySpec = do
+liftingNonEmptySpec = describe "explicit NonEmpty parsers" $ do
     describe "parseNonEmpty" $ do
         it "uses tagged-aeson for list elements" $ do
             parse (parseNonEmpty @Modded @Text) [value|["a"]|]
@@ -106,7 +106,7 @@ liftingNonEmptySpec = do
 ----------------------------------------------------------------------------
 
 liftingVectorSpec :: Spec
-liftingVectorSpec = do
+liftingVectorSpec = describe "explicit Vector parsers" $ do
     describe "parseVector" $ do
         it "uses tagged-aeson for vector elements" $ do
             parse (parseVector @Modded @Text) [value|["a"]|]
@@ -129,7 +129,7 @@ liftingVectorSpec = do
 ----------------------------------------------------------------------------
 
 liftingSetSpec :: Spec
-liftingSetSpec = do
+liftingSetSpec = describe "explicit Set parsers" $ do
     describe "parseSet" $ do
         it "uses tagged-aeson for list elements" $ do
             parse (parseSet @Modded @Text) [value|["a"]|]
