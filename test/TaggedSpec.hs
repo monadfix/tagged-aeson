@@ -38,13 +38,13 @@ import Util
 
 spec :: Spec
 spec = do
+    defaultDefinitionsSpec
     liftingListSpec
     liftingNonEmptySpec
     liftingVectorSpec
     liftingSetSpec
     liftingHashSetSpec
 
--- Do default definitions for FromJSON and ToJSON methods work?
 -- Do "parseJSON @Aeson" and "toJSON @Aeson" work?
 -- Do TaggedAeson and fromTaggedAeson work?
 -- Do 'deriveJSON', 'deriveFromJSON', 'deriveToJSON' work?
@@ -52,6 +52,30 @@ spec = do
 -- Does "deriving via WithAeson" work?
 -- Does "deriving via WithAeson1" work? On stuff that has FromJSON1? On Set and HashSet?
 -- Does encoding and decoding Rational work?
+
+----------------------------------------------------------------------------
+-- FromJSON and ToJSON default definitions
+----------------------------------------------------------------------------
+
+defaultDefinitionsSpec :: Spec
+defaultDefinitionsSpec = describe "FromJSON and ToJSON default definitions" $ do
+    it "parseJSONList" $ do
+        parse (parseJSONList @Modded @Text) [value|["a"]|]
+            `shouldBe` Error "expected modded text"
+        parse (parseJSONList @Modded @Text) [value|["modded:a", "modded:b"]|]
+            `shouldBe` Success ["a", "b"]
+
+    it "toEncoding" $ do
+        toEncoding @Modded @Text "a"
+            `shouldBe` [encoding|"modded:a"|]
+
+    it "toJSONList" $ do
+        listToJSON @Modded @Text ["a"]
+            `shouldBe` [value|["modded:a"]|]
+
+    it "toEncodingList" $ do
+        listToEncoding @Modded @Text ["a"]
+            `shouldBe` [encoding|["modded:a"]|]
 
 ----------------------------------------------------------------------------
 -- parseList, listToJSON, listToEncoding
@@ -176,6 +200,7 @@ liftingHashSetSpec = describe "explicit HashSet parsers" $ do
 -- Helpers
 ----------------------------------------------------------------------------
 
+-- | A tag for instances that are different from Aeson-provided instances.
 data Modded
 
 instance FromJSON Modded Text where
