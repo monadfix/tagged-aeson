@@ -21,6 +21,8 @@ import Data.Text (Text)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Vector as V
 import Data.Vector (Vector)
+import qualified Data.Set as S
+import Data.Set (Set)
 -- import qualified Data.Aeson          as A
 -- import qualified Data.Aeson.Types    as A
 -- import qualified Data.Aeson.TH       as A
@@ -37,6 +39,7 @@ spec = do
     liftingListSpec
     liftingNonEmptySpec
     liftingVectorSpec
+    liftingSetSpec
 
 -- Do default definitions for FromJSON and ToJSON methods work?
 -- Do "parseJSON @Aeson" and "toJSON @Aeson" work?
@@ -46,7 +49,6 @@ spec = do
 -- Does "deriving via WithAeson" work?
 -- Does "deriving via WithAeson1" work? On stuff that has FromJSON1? On Set and HashSet?
 -- Does encoding and decoding Rational work?
--- parseSet, setToJSON, setToEncoding
 -- parseHashSet, hashSetToJSON, hashSetToEncoding
 
 ----------------------------------------------------------------------------
@@ -123,6 +125,29 @@ liftingVectorSpec = do
                 `shouldBe` [encoding|["modded:a"]|]
 
 ----------------------------------------------------------------------------
+-- parseSet, setToJSON, setToEncoding
+----------------------------------------------------------------------------
+
+liftingSetSpec :: Spec
+liftingSetSpec = do
+    describe "parseSet" $ do
+        it "uses tagged-aeson for list elements" $ do
+            parse (parseSet @Modded @Text) [value|["a"]|]
+                `shouldBe` Error "expected modded text"
+            parse (parseSet @Modded @Text) [value|["modded:a", "modded:b"]|]
+                `shouldBe` Success (S.fromList ["a", "b"])
+
+    describe "setToJSON" $ do
+        it "uses tagged-aeson for list elements" $ do
+            setToJSON @Modded @Text (S.fromList ["a"])
+                `shouldBe` [value|["modded:a"]|]
+
+    describe "setToEncoding" $ do
+        it "uses tagged-aeson for list elements" $ do
+            setToEncoding @Modded @Text (S.fromList ["a"])
+                `shouldBe` [encoding|["modded:a"]|]
+
+----------------------------------------------------------------------------
 -- Helpers
 ----------------------------------------------------------------------------
 
@@ -146,6 +171,10 @@ instance TypeLits.TypeError ('TypeLits.Text "Vector@Modded should never be used"
       => FromJSON Modded (Vector a) where
     parseJSON = undefined
 
+instance TypeLits.TypeError ('TypeLits.Text "Set@Modded should never be used")
+      => FromJSON Modded (Set a) where
+    parseJSON = undefined
+
 instance ToJSON Modded Text where
     toJSON s = using @Aeson (toJSON ("modded:" <> s))
 
@@ -159,4 +188,8 @@ instance TypeLits.TypeError ('TypeLits.Text "NonEmpty@Modded should never be use
 
 instance TypeLits.TypeError ('TypeLits.Text "Vector@Modded should never be used")
       => ToJSON Modded (Vector a) where
+    toJSON = undefined
+
+instance TypeLits.TypeError ('TypeLits.Text "Set@Modded should never be used")
+      => ToJSON Modded (Set a) where
     toJSON = undefined

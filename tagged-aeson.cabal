@@ -61,6 +61,7 @@ test-suite tests
     template-haskell,
     th-lift,
     vector,
+    containers,
     tagged-aeson
   build-tool-depends: hspec-discover:hspec-discover
   ghc-options:
