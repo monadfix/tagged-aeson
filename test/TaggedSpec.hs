@@ -39,13 +39,13 @@ import Util
 spec :: Spec
 spec = do
     defaultDefinitionsSpec
+    aesonTypeAnnotationSpec
     liftingListSpec
     liftingNonEmptySpec
     liftingVectorSpec
     liftingSetSpec
     liftingHashSetSpec
 
--- Do "parseJSON @Aeson" and "toJSON @Aeson" work?
 -- Do TaggedAeson and fromTaggedAeson work?
 -- Do 'deriveJSON', 'deriveFromJSON', 'deriveToJSON' work?
 -- Does 'using' work? On Parser, on Value, on functions? With (.:)? With (.=)? With 'object'?
@@ -76,6 +76,20 @@ defaultDefinitionsSpec = describe "FromJSON and ToJSON default definitions" $ do
     it "toEncodingList" $ do
         listToEncoding @Modded @Text ["a"]
             `shouldBe` [encoding|["modded:a"]|]
+
+----------------------------------------------------------------------------
+-- parseJSON @Aeson and toJSON @Aeson
+----------------------------------------------------------------------------
+
+aesonTypeAnnotationSpec :: Spec
+aesonTypeAnnotationSpec = describe "@Aeson type annotation" $ do
+    it "parseJSON @Aeson" $ do
+        parse (parseJSON @Aeson) [value|"a"|]
+            `shouldBe` Success ("a" :: Text)
+
+    it "toJSON @Aeson" $ do
+        toJSON @Aeson ("a" :: Text)
+            `shouldBe` [value|"a"|]
 
 ----------------------------------------------------------------------------
 -- parseList, listToJSON, listToEncoding
