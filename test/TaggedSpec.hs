@@ -25,7 +25,7 @@ import qualified Data.Set as S
 import Data.Set (Set)
 import qualified Data.HashSet as HS
 import Data.HashSet (HashSet)
--- import qualified Data.Aeson          as A
+import qualified Data.Aeson          as A
 -- import qualified Data.Aeson.Types    as A
 -- import qualified Data.Aeson.TH       as A
 -- import qualified Data.Aeson.Internal as A
@@ -40,13 +40,13 @@ spec :: Spec
 spec = do
     defaultDefinitionsSpec
     aesonTypeAnnotationSpec
+    taggedAesonSpec
     liftingListSpec
     liftingNonEmptySpec
     liftingVectorSpec
     liftingSetSpec
     liftingHashSetSpec
 
--- Do TaggedAeson and fromTaggedAeson work?
 -- Do 'deriveJSON', 'deriveFromJSON', 'deriveToJSON' work?
 -- Does 'using' work? On Parser, on Value, on functions? With (.:)? With (.=)? With 'object'?
 -- Does "deriving via WithAeson" work?
@@ -90,6 +90,20 @@ aesonTypeAnnotationSpec = describe "@Aeson type annotation" $ do
     it "toJSON @Aeson" $ do
         toJSON @Aeson ("a" :: Text)
             `shouldBe` [value|"a"|]
+
+----------------------------------------------------------------------------
+-- TaggedAeson and fromTaggedAeson
+----------------------------------------------------------------------------
+
+taggedAesonSpec :: Spec
+taggedAesonSpec = describe "TaggedAeson" $ do
+    it "works with 'decode'" $ do
+        fromTaggedAeson @Modded <$> A.decode "\"modded:a\""
+            `shouldBe` Just ("a" :: Text)
+
+    it "works with 'encode'" $ do
+        A.encode (TaggedAeson @Modded ("a" :: Text))
+            `shouldBe` "\"modded:a\""
 
 ----------------------------------------------------------------------------
 -- parseList, listToJSON, listToEncoding
