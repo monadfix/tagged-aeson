@@ -26,6 +26,11 @@ source-repository head
 library
   exposed-modules:
     Data.Aeson.Tagged
+    Data.Aeson.Tagged.TH
+    Data.Aeson.Tagged.Types
+    Data.Aeson.Tagged.Wrapped
+    Data.Aeson.Tagged.Classes
+    Data.Aeson.Tagged.Explicit
   build-depends:
     aeson,
     base >=4.8 && <5,
@@ -46,13 +51,32 @@ library
     -Wno-unused-do-bind
   hs-source-dirs: lib
   default-language: Haskell2010
+  default-extensions:
+    ScopedTypeVariables
+    TypeApplications
+    RankNTypes
+    KindSignatures
+    PolyKinds
+    LambdaCase
+    ViewPatterns
+    DefaultSignatures
+    DerivingStrategies
+    FlexibleInstances
+    PatternSynonyms
+    MultiParamTypeClasses
+    FunctionalDependencies
+    DeriveLift
+    StandaloneDeriving
 
 test-suite tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-    TaggedSpec
-    Util
+    Data.Aeson.TaggedSpec
+    Data.Aeson.Tagged.ExplicitSpec
+    Data.Aeson.Tagged.THSpec
+    Utils
+    Types
   build-depends:
     base,
     hspec,
@@ -71,3 +95,19 @@ test-suite tests
     -Wno-unused-do-bind
   hs-source-dirs: test
   default-language: Haskell2010
+  default-extensions:
+    ScopedTypeVariables
+    TypeApplications
+    RankNTypes
+    KindSignatures
+    PolyKinds
+    LambdaCase
+    ViewPatterns
+    DefaultSignatures
+    DerivingStrategies
+    FlexibleInstances
+    PatternSynonyms
+    MultiParamTypeClasses
+    FunctionalDependencies
+    DeriveLift
+    StandaloneDeriving
