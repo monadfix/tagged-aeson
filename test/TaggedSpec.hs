@@ -281,13 +281,33 @@ instance TypeLits.TypeError ('TypeLits.Text "HashSet@Modded should never be used
 
 thDerivingSpec :: Spec
 thDerivingSpec = describe "Template Haskell deriving" $ do
+    -- Note: we are not testing 'deriveFromJSON' and 'deriveToJSON' because
+    -- they are more-or-less tested as part of testing 'deriveJSON'
     describe "deriveJSON" $ do
-        describe "NoAeson" $ do
-            it "parseJSON" $ do
-                parse (parseJSON @() @TH) [value|"no-aeson"|]
+        describe "TH1 NoAeson" $ do
+            it "parseJSON works" $ do
+                parse (parseJSON @NoAeson @TH) [value|"no-aeson"|]
                     `shouldBe` Success (TH1 NoAeson)
-    -- We are not testing 'deriveFromJSON' and 'deriveToJSON' because they
-    -- are more-or-less tested as part of testing 'deriveJSON'
+
+            it "parseJSONList works" $ do
+                parse (parseJSONList @NoAeson @TH) [value|["no-aeson", "no-aeson"]|]
+                    `shouldBe` Success [TH1 NoAeson, TH1 NoAeson]
+
+            it "toJSON works" $ do
+                toJSON @NoAeson (TH1 NoAeson)
+                    `shouldBe` [value|"no-aeson"|]
+
+            it "toJSONList works" $ do
+                toJSONList @NoAeson [TH1 NoAeson, TH1 NoAeson]
+                    `shouldBe` [value|["no-aeson", "no-aeson"]|]
+
+            it "toEncoding works" $ do
+                toEncoding @NoAeson (TH1 NoAeson)
+                    `shouldBe` [encoding|"no-aeson"|]
+
+            it "toEncodingList works" $ do
+                toEncodingList @NoAeson [TH1 NoAeson, TH1 NoAeson]
+                    `shouldBe` [encoding|["no-aeson", "no-aeson"]|]
 
     -- TODO: use more tests from Aeson itself
 
@@ -296,23 +316,22 @@ thDerivingSpec = describe "Template Haskell deriving" $ do
     -- TODO: test with Foo a = Foo a (will it replace constraints?)
 
 -- | A type that does not have Aeson instances, only @tagged-aeson@
--- instances.
+-- instances. Also a tag for @tagged-aeson@ instances.
 data NoAeson = NoAeson
     deriving stock (Eq, Show)
 
-instance FromJSON () NoAeson where
+instance FromJSON NoAeson NoAeson where
     parseJSON = withText "NoAeson" $ \case
         "no-aeson" -> pure NoAeson
         _ -> fail "expected 'no-aeson'"
 
-instance ToJSON () NoAeson where
+instance ToJSON NoAeson NoAeson where
     toJSON NoAeson = using @Aeson (toJSON ("no-aeson" :: Text))
 
 data TH = TH1 NoAeson
     deriving stock (Eq, Show)
 
-deriveJSON [t|()|] A.defaultOptions ''TH
+deriveJSON [t|NoAeson|] A.defaultOptions ''TH
 
--- TODO: test Encoding
 -- TODO: which instance will be used for lists?
 -- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble
