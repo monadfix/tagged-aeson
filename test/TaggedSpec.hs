@@ -54,6 +54,7 @@ spec = do
 -- Does "deriving via WithAeson" work?
 -- Does "deriving via WithAeson1" work? On stuff that has FromJSON1? On Set and HashSet?
 -- Does encoding and decoding Rational work?
+-- Patterns
 
 ----------------------------------------------------------------------------
 -- FromJSON and ToJSON default definitions

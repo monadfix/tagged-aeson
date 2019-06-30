@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -16,6 +17,7 @@
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Data.Aeson.Tagged
@@ -74,6 +76,14 @@ module Data.Aeson.Tagged
     parseHashSet, parseHashSetWith,
     hashSetToJSON, hashSetToJSONWith,
     hashSetToEncoding, hashSetToEncodingWith,
+
+    -- * Patterns
+    pattern Object,
+    pattern Array,
+    pattern String,
+    pattern Number,
+    pattern Bool,
+    pattern Null,
 
     -- * Internals
     Parser(..),
@@ -316,9 +326,8 @@ rewriteExp tag = \case
           nameBase name == "pair" ->
               VarE 'internal_pair
     ConE name
-        -- TODO: this should use #. or patterns or whatever
-        | name == 'A.String ->
-              VarE '(.) `AppE` ConE 'Value `AppE` ConE 'A.String
+        -- TODO try to find tests where more of those would be needed
+        | name == 'A.String -> VarE 'String
     other -> other
   where
     exps =
@@ -335,9 +344,13 @@ rewriteExp tag = \case
 -- | 'aesonToTaggedAesonTH': replace patterns.
 rewritePat :: Pat -> Pat
 rewritePat = \case
-    ConP p ps
-        | p == 'A.Object -> ConP 'Value [ConP 'A.Object ps]
-        -- TODO more
+    ConP name ps
+        | name == 'A.Object -> ConP 'Object ps
+        | name == 'A.Array -> ConP 'Array ps
+        | name == 'A.String -> ConP 'String ps
+        | name == 'A.Number -> ConP 'Number ps
+        | name == 'A.Bool -> ConP 'Bool ps
+        | name == 'A.Null -> ConP 'Null ps
     x -> x
 
 -- | 'aesonToTaggedAesonTH': replace names elsewhere (e.g. in left sides in
@@ -460,7 +473,6 @@ newtype Value (tag :: k) = Value A.Value
     -- TODO KeyValue instances
     -- TODO FromJSON, ToJSON instances
     -- TODO Generic, Data instances
-    -- TODO add patterns?
 
 newtype Encoding (tag :: k) = Encoding A.Encoding
     deriving newtype (Eq, Ord, Show)
@@ -774,7 +786,7 @@ vectorToJSON = vectorToJSONWith toJSON
 {-# INLINE vectorToJSON #-}
 
 vectorToJSONWith :: forall tag a. (a -> Value tag) -> V.Vector a -> Value tag
-vectorToJSONWith f = coerce A.Array . V.map f
+vectorToJSONWith f = Array . V.map f
 {-# INLINE vectorToJSONWith #-}
 
 vectorToEncoding :: forall tag a. ToJSON tag a => V.Vector a -> Encoding tag
@@ -866,6 +878,36 @@ TODO: ToJSONKey
 
 TODO: can we do without default Value instances?
 -}
+
+----------------------------------------------------------------------------
+-- Patterns
+----------------------------------------------------------------------------
+
+-- TODO document really well
+
+pattern Object :: Object tag -> Value tag
+pattern Object a <- Value (A.Object (coerce -> a)) where
+    Object a = Value (A.Object (coerce a))
+
+pattern Array :: Array tag -> Value tag
+pattern Array a <- Value (A.Array (coerce -> a)) where
+    Array a = Value (A.Array (coerce a))
+
+pattern String :: Text -> Value tag
+pattern String a <- Value (A.String a) where
+    String a = Value (A.String a)
+
+pattern Number :: Scientific -> Value tag
+pattern Number a <- Value (A.Number a) where
+    Number a = Value (A.Number a)
+
+pattern Bool :: Bool -> Value tag
+pattern Bool a <- Value (A.Bool a) where
+    Bool a = Value (A.Bool a)
+
+pattern Null :: Value tag
+pattern Null <- Value A.Null where
+    Null = Value A.Null
 
 ----------------------------------------------------------------------------
 -- Internal
