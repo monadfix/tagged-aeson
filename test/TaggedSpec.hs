@@ -279,23 +279,26 @@ instance TypeLits.TypeError ('TypeLits.Text "HashSet@Modded should never be used
       => ToJSON Modded (HashSet a) where
     toJSON = undefined
 
--- | A type that does not have Aeson instances, only @tagged-aeson@
--- instances. Also a tag for @tagged-aeson@ instances.
-data NoAeson = NoAeson
+-- | A tag for types that don't have Aeson instances, only @tagged-aeson@
+-- instances.
+data NoAeson
+
+newtype Int' = Int' Int
     deriving stock (Eq, Show)
+    deriving newtype (Num)
 
--- TODO: change to a number?
+instance TypeLits.TypeError ('TypeLits.Text "Int' does not have Aeson instances")
+      => A.FromJSON Int' where
+    parseJSON = undefined
+instance TypeLits.TypeError ('TypeLits.Text "Int' does not have Aeson instances")
+      => A.ToJSON Int' where
+    toJSON = undefined
 
-instance FromJSON NoAeson NoAeson where
-    parseJSON = withText "NoAeson" $ \case
-        "no-aeson" -> pure NoAeson
-        _ -> fail "expected 'no-aeson'"
+deriving via WithAeson Int instance FromJSON NoAeson Int'
+deriving via WithAeson Int instance ToJSON NoAeson Int'
 
-instance ToJSON NoAeson NoAeson where
-    toJSON NoAeson = using @Aeson (toJSON ("no-aeson" :: Text))
-
-deriving via WithAeson1 [] NoAeson instance FromJSON NoAeson [NoAeson]
-deriving via WithAeson1 [] NoAeson instance ToJSON NoAeson [NoAeson]
+deriving via WithAeson [Int] instance FromJSON NoAeson [Int']
+deriving via WithAeson [Int] instance ToJSON NoAeson [Int']
 
 ----------------------------------------------------------------------------
 -- Template Haskell deriving (has to be last because of TH sorting)
@@ -314,37 +317,37 @@ thDerivingSpec = describe "Template Haskell deriving" $ do
 -- TODO: test with Foo a = Foo a (will it replace constraints?)
 
 -- | A datatype wrapping one field.
-data THSingle = THSingle NoAeson
+data THSingle = THSingle Int'
     deriving stock (Eq, Show)
 
 thSingleSpec :: Spec
 thSingleSpec = describe "THSingle (wrapping one field)" $ do
     it "deriveJSON/parseJSON works" $ do
-        parse (parseJSON @NoAeson @THSingle) [value|"no-aeson"|]
-            `shouldBe` Success (THSingle NoAeson)
+        parse (parseJSON @NoAeson @THSingle) [value|1|]
+            `shouldBe` Success (THSingle 1)
 
     it "deriveJSON/parseJSONList works" $ do
-        parse (parseJSONList @NoAeson @THSingle) [value|["no-aeson", "no-aeson"]|]
-            `shouldBe` Success [THSingle NoAeson, THSingle NoAeson]
+        parse (parseJSONList @NoAeson @THSingle) [value|[1,2]|]
+            `shouldBe` Success [THSingle 1, THSingle 2]
 
     it "deriveJSON/toJSON works" $ do
-        toJSON @NoAeson (THSingle NoAeson)
-            `shouldBe` [value|"no-aeson"|]
+        toJSON @NoAeson (THSingle 1)
+            `shouldBe` [value|1|]
 
     it "deriveJSON/toJSONList works" $ do
-        toJSONList @NoAeson [THSingle NoAeson, THSingle NoAeson]
-            `shouldBe` [value|["no-aeson", "no-aeson"]|]
+        toJSONList @NoAeson [THSingle 1, THSingle 2]
+            `shouldBe` [value|[1,2]|]
 
     it "deriveJSON/toEncoding works" $ do
-        toEncoding @NoAeson (THSingle NoAeson)
-            `shouldBe` [encoding|"no-aeson"|]
+        toEncoding @NoAeson (THSingle 1)
+            `shouldBe` [encoding|1|]
 
     it "deriveJSON/toEncodingList works" $ do
-        toEncodingList @NoAeson [THSingle NoAeson, THSingle NoAeson]
-            `shouldBe` [encoding|["no-aeson", "no-aeson"]|]
+        toEncodingList @NoAeson [THSingle 1, THSingle 2]
+            `shouldBe` [encoding|[1,2]|]
 
 -- | A datatype wrapping a list.
-data THList = THList [NoAeson]
+data THList = THList [Int']
     deriving stock (Eq, Show)
 
 -- TODO: test that it actually uses the list instance
@@ -352,29 +355,28 @@ data THList = THList [NoAeson]
 thListSpec :: Spec
 thListSpec = describe "THList (wrapping one field with a list)" $ do
     it "deriveJSON/parseJSON works" $ do
-        parse (parseJSON @NoAeson @THList) [value|["no-aeson"]|]
-            `shouldBe` Success (THList [NoAeson])
+        parse (parseJSON @NoAeson) [value|[1]|]
+            `shouldBe` Success (THList [1])
 
     it "deriveJSON/parseJSONList works" $ do
-        parse (parseJSONList @NoAeson @THList)
-              [value|[["no-aeson"], ["no-aeson", "no-aeson"]]|]
-            `shouldBe` Success [THList [NoAeson], THList [NoAeson, NoAeson]]
+        parse (parseJSONList @NoAeson) [value|[[1],[2,3]]|]
+            `shouldBe` Success [THList [1], THList [2, 3]]
 
     it "deriveJSON/toJSON works" $ do
-        toJSON @NoAeson (THList [NoAeson])
-            `shouldBe` [value|["no-aeson"]|]
+        toJSON @NoAeson (THList [1])
+            `shouldBe` [value|[1]|]
 
     it "deriveJSON/toJSONList works" $ do
-        toJSONList @NoAeson [THList [NoAeson], THList [NoAeson, NoAeson]]
-            `shouldBe` [value|[["no-aeson"], ["no-aeson", "no-aeson"]]|]
+        toJSONList @NoAeson [THList [1], THList [2, 3]]
+            `shouldBe` [value|[[1],[2,3]]|]
 
     it "deriveJSON/toEncoding works" $ do
-        toEncoding @NoAeson (THList [NoAeson])
-            `shouldBe` [encoding|["no-aeson"]|]
+        toEncoding @NoAeson (THList [1])
+            `shouldBe` [encoding|[1]|]
 
     it "deriveJSON/toEncodingList works" $ do
-        toEncodingList @NoAeson [THList [NoAeson], THList [NoAeson, NoAeson]]
-            `shouldBe` [encoding|[["no-aeson"], ["no-aeson", "no-aeson"]]|]
+        toEncodingList @NoAeson [THList [1], THList [2, 3]]
+            `shouldBe` [encoding|[[1],[2,3]]|]
 
 -- | An enum datatype.
 data THEnum = THEnum1 | THEnum2
@@ -387,8 +389,7 @@ thEnumSpec = describe "THEnum (enum datatype)" $ do
             `shouldBe` Success THEnum1
 
     it "deriveJSON/parseJSONList works" $ do
-        parse (parseJSONList @NoAeson @THEnum)
-              [value|["THEnum1", "THEnum2"]|]
+        parse (parseJSONList @NoAeson @THEnum) [value|["THEnum1", "THEnum2"]|]
             `shouldBe` Success [THEnum1, THEnum2]
 
     it "deriveJSON/toJSON works" $ do
@@ -408,7 +409,7 @@ thEnumSpec = describe "THEnum (enum datatype)" $ do
             `shouldBe` [encoding|["THEnum1", "THEnum2"]|]
 
 -- | An ADT.
-data THADT = THADT1 | THADT2 NoAeson
+data THADT = THADT1 | THADT2 Int'
     deriving stock (Eq, Show)
 
 -- TODO record
