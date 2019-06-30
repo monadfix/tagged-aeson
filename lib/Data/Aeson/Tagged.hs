@@ -117,7 +117,8 @@ import qualified Data.Aeson          as A
 import qualified Data.Aeson.Types    as A
 import qualified Data.Aeson.TH       as A
 import qualified Data.Aeson.Internal as A
-import qualified Data.Aeson.Encoding as E
+import qualified Data.Aeson.Encoding          as E
+import qualified Data.Aeson.Encoding.Internal as E
 
 ----------------------------------------------------------------------------
 -- Classes
@@ -332,6 +333,7 @@ rewriteExp tag = \case
               VarE 'internal_pair
     ConE name
         -- TODO try to find tests where more of these would be needed
+        | name == 'A.Array -> ConE 'Array
         | name == 'A.String -> ConE 'String
     other -> other
   where
@@ -350,6 +352,10 @@ rewriteExp tag = \case
         , ('A.parseJSONList , 'parseJSONList)
         , ('(A..:)          , '(.:))
         , ('E.text          , 'encoding_text)
+        , ('E.comma         , 'encoding_comma)
+        , ('(E.><)          , 'encoding_append)
+        , ('E.wrapObject    , 'encoding_wrapObject)
+        , ('E.wrapArray     , 'encoding_wrapArray)
         -- TODO more
         ]
 
@@ -384,6 +390,26 @@ coerceParser3 = coerce
 coerceParser4 :: (a -> b -> c -> d -> A.Parser x) -> (a -> b -> c -> d -> Parser tag x)
 coerceParser4 = coerce
 {-# INLINE coerceParser4 #-}
+
+encoding_text :: Text -> Encoding tag
+encoding_text = coerce E.text
+{-# INLINE encoding_text #-}
+
+encoding_comma :: Encoding tag
+encoding_comma = coerce E.comma
+{-# INLINE encoding_comma #-}
+
+encoding_append :: Encoding tag -> Encoding tag -> Encoding tag
+encoding_append = coerce (E.><)
+{-# INLINE encoding_append #-}
+
+encoding_wrapObject :: Encoding tag -> Encoding tag
+encoding_wrapObject = coerce E.wrapObject
+{-# INLINE encoding_wrapObject #-}
+
+encoding_wrapArray :: Encoding tag -> Encoding tag
+encoding_wrapArray = coerce E.wrapArray
+{-# INLINE encoding_wrapArray #-}
 
 -- | 'aesonToTaggedAesonTH': replace patterns.
 rewritePat :: Pat -> Pat
@@ -470,12 +496,6 @@ instance (v ~ Value tag) => KeyValuePair v (DList (Pair tag)) where
 
 instance (e ~ Encoding tag) => KeyValuePair e (Series tag) where
     internal_pair = coerce E.pairStr
-
--- | Our copy of 'Data.Aeson.Encoding.text'.
---
--- TODO export?
-encoding_text :: Text -> Encoding tag
-encoding_text = coerce E.text
 
 -- | Rewrite InfixE and UInfixE as AppE.
 --

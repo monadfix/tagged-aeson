@@ -311,6 +311,7 @@ thDerivingSpec = describe "Template Haskell deriving" $ do
     thSingleSpec
     thListSpec
     thEnumSpec
+    thADTSpec
 
 -- TODO: use more tests from Aeson itself
 
@@ -323,11 +324,11 @@ data THSingle = THSingle Int'
 thSingleSpec :: Spec
 thSingleSpec = describe "THSingle (wrapping one field)" $ do
     it "deriveJSON/parseJSON works" $ do
-        parse (parseJSON @NoAeson @THSingle) [value|1|]
+        parse (parseJSON @NoAeson) [value|1|]
             `shouldBe` Success (THSingle 1)
 
     it "deriveJSON/parseJSONList works" $ do
-        parse (parseJSONList @NoAeson @THSingle) [value|[1,2]|]
+        parse (parseJSONList @NoAeson) [value|[1,2]|]
             `shouldBe` Success [THSingle 1, THSingle 2]
 
     it "deriveJSON/toJSON works" $ do
@@ -385,11 +386,11 @@ data THEnum = THEnum1 | THEnum2
 thEnumSpec :: Spec
 thEnumSpec = describe "THEnum (enum datatype)" $ do
     it "deriveJSON/parseJSON works" $ do
-        parse (parseJSON @NoAeson @THEnum) [value|"THEnum1"|]
+        parse (parseJSON @NoAeson) [value|"THEnum1"|]
             `shouldBe` Success THEnum1
 
     it "deriveJSON/parseJSONList works" $ do
-        parse (parseJSONList @NoAeson @THEnum) [value|["THEnum1", "THEnum2"]|]
+        parse (parseJSONList @NoAeson) [value|["THEnum1", "THEnum2"]|]
             `shouldBe` Success [THEnum1, THEnum2]
 
     it "deriveJSON/toJSON works" $ do
@@ -409,8 +410,37 @@ thEnumSpec = describe "THEnum (enum datatype)" $ do
             `shouldBe` [encoding|["THEnum1", "THEnum2"]|]
 
 -- | An ADT.
-data THADT = THADT1 | THADT2 Int'
+data THADT = THADT1 | THADT2 Int' Int'
     deriving stock (Eq, Show)
+
+thADTSpec :: Spec
+thADTSpec = describe "THADT (ADT datatype)" $ do
+    it "deriveJSON/parseJSON works" $ do
+        parse (parseJSON @NoAeson) [value|{"tag":"THADT1"}|]
+            `shouldBe` Success THADT1
+        parse (parseJSON @NoAeson) [value|{"tag":"THADT2","contents":[1,2]}|]
+            `shouldBe` Success (THADT2 1 2)
+
+    it "deriveJSON/parseJSONList works" $ do
+        parse (parseJSONList @NoAeson)
+              [value|[{"tag":"THADT1"},{"tag":"THADT2","contents":[1,2]}]|]
+            `shouldBe` Success [THADT1, THADT2 1 2]
+
+    it "deriveJSON/toJSON works" $ do
+        toJSON @NoAeson THADT1
+            `shouldBe` [value|{"tag":"THADT1"}|]
+
+    it "deriveJSON/toJSONList works" $ do
+        toJSONList @NoAeson [THADT1, THADT2 1 2]
+            `shouldBe` [value|[{"tag":"THADT1"},{"tag":"THADT2","contents":[1,2]}]|]
+
+    it "deriveJSON/toEncoding works" $ do
+        toEncoding @NoAeson THADT1
+            `shouldBe` [encoding|{"tag":"THADT1"}|]
+
+    it "deriveJSON/toEncodingList works" $ do
+        toEncodingList @NoAeson [THADT1, THADT2 1 2]
+            `shouldBe` [encoding|[{"tag":"THADT1"},{"tag":"THADT2","contents":[1,2]}]|]
 
 -- TODO record
 
