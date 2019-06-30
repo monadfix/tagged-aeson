@@ -10,6 +10,8 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module TaggedSpec (spec) where
@@ -46,8 +48,8 @@ spec = do
     liftingVectorSpec
     liftingSetSpec
     liftingHashSetSpec
+    thDerivingSpec
 
--- Do 'deriveJSON', 'deriveFromJSON', 'deriveToJSON' work?
 -- Does 'using' work? On Parser, on Value, on functions? With (.:)? With (.=)? With 'object'?
 -- Does "deriving via WithAeson" work?
 -- Does "deriving via WithAeson1" work? On stuff that has FromJSON1? On Set and HashSet?
@@ -271,3 +273,45 @@ instance TypeLits.TypeError ('TypeLits.Text "Set@Modded should never be used")
 instance TypeLits.TypeError ('TypeLits.Text "HashSet@Modded should never be used")
       => ToJSON Modded (HashSet a) where
     toJSON = undefined
+
+----------------------------------------------------------------------------
+-- Template Haskell deriving (has to be last because of TH sorting)
+----------------------------------------------------------------------------
+
+thDerivingSpec :: Spec
+thDerivingSpec = describe "Template Haskell deriving" $ do
+    describe "deriveJSON" $ do
+        describe "NoAeson" $ do
+            it "parseJSON" $ do
+                parse (parseJSON @() @TH) [value|"no-aeson"|]
+                    `shouldBe` Success (TH1 NoAeson)
+    -- We are not testing 'deriveFromJSON' and 'deriveToJSON' because they
+    -- are more-or-less tested as part of testing 'deriveJSON'
+
+    -- TODO: use more tests from Aeson itself
+
+    -- TODO: test with lists
+
+    -- TODO: test with Foo a = Foo a (will it replace constraints?)
+
+-- | A type that does not have Aeson instances, only @tagged-aeson@
+-- instances.
+data NoAeson = NoAeson
+    deriving stock (Eq, Show)
+
+instance FromJSON () NoAeson where
+    parseJSON = withText "NoAeson" $ \case
+        "no-aeson" -> pure NoAeson
+        _ -> fail "expected 'no-aeson'"
+
+instance ToJSON () NoAeson where
+    toJSON NoAeson = using @Aeson (toJSON ("no-aeson" :: Text))
+
+data TH = TH1 NoAeson
+    deriving stock (Eq, Show)
+
+deriveJSON [t|()|] A.defaultOptions ''TH
+
+-- TODO: test Encoding
+-- TODO: which instance will be used for lists?
+-- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble

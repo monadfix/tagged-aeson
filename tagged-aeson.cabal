@@ -32,6 +32,7 @@ library
     base-prelude,
     containers,
     deepseq,
+    dlist,
     hashable,
     scientific,
     template-haskell >=2.12 && <2.15,
