@@ -307,6 +307,7 @@ thDerivingSpec = describe "Template Haskell deriving" $ do
     -- they are more-or-less tested as part of testing 'deriveJSON'
     thSingleSpec
     thListSpec
+    thEnumSpec
 
 -- TODO: use more tests from Aeson itself
 
@@ -346,6 +347,8 @@ thSingleSpec = describe "THSingle (wrapping one field)" $ do
 data THList = THList [NoAeson]
     deriving stock (Eq, Show)
 
+-- TODO: test that it actually uses the list instance
+
 thListSpec :: Spec
 thListSpec = describe "THList (wrapping one field with a list)" $ do
     it "deriveJSON/parseJSON works" $ do
@@ -376,6 +379,33 @@ thListSpec = describe "THList (wrapping one field with a list)" $ do
 -- | An enum datatype.
 data THEnum = THEnum1 | THEnum2
     deriving stock (Eq, Show)
+
+thEnumSpec :: Spec
+thEnumSpec = describe "THEnum (enum datatype)" $ do
+    it "deriveJSON/parseJSON works" $ do
+        parse (parseJSON @NoAeson @THEnum) [value|"THEnum1"|]
+            `shouldBe` Success THEnum1
+
+    it "deriveJSON/parseJSONList works" $ do
+        parse (parseJSONList @NoAeson @THEnum)
+              [value|["THEnum1", "THEnum2"]|]
+            `shouldBe` Success [THEnum1, THEnum2]
+
+    it "deriveJSON/toJSON works" $ do
+        toJSON @NoAeson THEnum1
+            `shouldBe` [value|"THEnum1"|]
+
+    it "deriveJSON/toJSONList works" $ do
+        toJSONList @NoAeson [THEnum1, THEnum2]
+            `shouldBe` [value|["THEnum1", "THEnum2"]|]
+
+    it "deriveJSON/toEncoding works" $ do
+        toEncoding @NoAeson THEnum1
+            `shouldBe` [encoding|"THEnum1"|]
+
+    it "deriveJSON/toEncodingList works" $ do
+        toEncodingList @NoAeson [THEnum1, THEnum2]
+            `shouldBe` [encoding|["THEnum1", "THEnum2"]|]
 
 -- | An ADT.
 data THADT = THADT1 | THADT2 NoAeson
