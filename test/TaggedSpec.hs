@@ -18,6 +18,8 @@
 
 module TaggedSpec (spec) where
 
+-- TODO: test with all recent Aeson versions. Add strict Aeson bounds.
+
 import BasePrelude
 import Data.Aeson.Tagged
 import qualified Data.Text as T

@@ -290,7 +290,8 @@ aesonToTaggedAesonTH tag =
     transformBi rewriteName .
     transformBi rewritePat .
     transformBi (rewriteExp tag) .
-    transformBi (rewriteType tag)
+    transformBi (rewriteType tag) .
+    transformBi rewriteInfix
 
 -- | 'aesonToTaggedAesonTH': replace classes and types.
 rewriteType :: Type -> Type -> Type
@@ -469,6 +470,21 @@ instance (e ~ Encoding tag) => KeyValuePair e (Series tag) where
 -- TODO export?
 encoding_text :: Text -> Encoding tag
 encoding_text = coerce E.text
+
+-- | Rewrite InfixE and UInfixE as AppE.
+--
+-- Rationale: we rewrite @(.:)@ to @(.:) \@tag@, and GHC crashes when InfixE
+-- contains a compound expression.
+--
+-- TODO: this won't be needed if we get rid of tags.
+rewriteInfix :: Exp -> Exp
+rewriteInfix = \case
+    InfixE Nothing b Nothing -> b
+    InfixE (Just a) b Nothing -> b `AppE` a
+    InfixE Nothing b (Just c) -> (VarE 'flip `AppE` b) `AppE` c
+    InfixE (Just a) b (Just c) -> (b `AppE` a) `AppE` c
+    UInfixE a b c -> (b `AppE` a) `AppE` c
+    other -> other
 
 ----------------------------------------------------------------------------
 -- Using
