@@ -316,30 +316,67 @@ rewriteExp tag = \case
     VarE name
         | Just taggedName <- lookup name exps ->
               AppTypeE (VarE taggedName) tag
+        | Just (_, coerceFun) <- find (eqInternalName name . fst) coercibleFuns ->
+              VarE coerceFun `AppE` VarE name
         -- Unexported functions
-        | (packageNameOnly <$> namePackage name) == Just "aeson" &&
-          nameModule name == Just "Data.Aeson.Types.ToJSON" &&
-          nameBase name == "fromPairs" ->
+        | name `eqInternalName` ("Data.Aeson.Types.ToJSON", "fromPairs") ->
               VarE 'internal_fromPairs
-        | (packageNameOnly <$> namePackage name) == Just "aeson" &&
-          nameModule name == Just "Data.Aeson.Types.ToJSON" &&
-          nameBase name == "pair" ->
+        | name `eqInternalName` ("Data.Aeson.Types.ToJSON", "pair") ->
               VarE 'internal_pair
     ConE name
-        -- TODO try to find tests where more of those would be needed
-        | name == 'A.String -> VarE 'String
+        -- TODO try to find tests where more of these would be needed
+        | name == 'A.String -> ConE 'String
     other -> other
   where
+    eqInternalName :: Name -> (String, String) -> Bool
+    eqInternalName name (moduleName, baseName) =
+        (packageNameOnly <$> namePackage name) == Just "aeson" &&
+        nameModule name == Just moduleName &&
+        nameBase name == baseName
+
+    exps :: [(Name, Name)]
     exps =
-      [ ('A.toJSON        , 'toJSON)
-      , ('A.toJSONList    , 'toJSONList)
-      , ('A.toEncodingList, 'toEncodingList)
-      , ('A.parseJSON     , 'parseJSON)
-      , ('A.parseJSONList , 'parseJSONList)
-      , ('(A..:)          , '(.:))
-      , ('E.text          , 'encoding_text)
-      -- TODO more
-      ]
+        [ ('A.toJSON        , 'toJSON)
+        , ('A.toJSONList    , 'toJSONList)
+        , ('A.toEncodingList, 'toEncodingList)
+        , ('A.parseJSON     , 'parseJSON)
+        , ('A.parseJSONList , 'parseJSONList)
+        , ('(A..:)          , '(.:))
+        , ('E.text          , 'encoding_text)
+        -- TODO more
+        ]
+
+    -- TODO: this is brittle. Perhaps TH code should use Aeson's Parser, and
+    -- only convert to tagged-aeson at the end? (I'm scared of that
+    -- approach, it relies on tests for correctness)
+    coercibleFuns :: [((String, String), Name)]
+    coercibleFuns =
+        [ (("Data.Aeson.TH", "unknownFieldFail"), 'coerceParser3)
+        , (("Data.Aeson.TH", "noArrayFail"), 'coerceParser2)
+        , (("Data.Aeson.TH", "noObjectFail"), 'coerceParser2)
+        , (("Data.Aeson.TH", "firstElemNoStringFail"), 'coerceParser2)
+        , (("Data.Aeson.TH", "wrongPairCountFail"), 'coerceParser2)
+        , (("Data.Aeson.TH", "noStringFail"), 'coerceParser2)
+        , (("Data.Aeson.TH", "noMatchFail"), 'coerceParser2)
+        , (("Data.Aeson.TH", "not2ElemArray"), 'coerceParser2)
+        , (("Data.Aeson.TH", "conNotFoundFail2ElemArray"), 'coerceParser3)
+        , (("Data.Aeson.TH", "conNotFoundFailObjectSingleField"), 'coerceParser3)
+        , (("Data.Aeson.TH", "conNotFoundFailTaggedObject"), 'coerceParser3)
+        , (("Data.Aeson.TH", "parseTypeMismatch'"), 'coerceParser4)
+        , (("Data.Aeson.TH", "valueConName"), 'coerce)
+        ]
+
+coerceParser2 :: (a -> b -> A.Parser x) -> (a -> b -> Parser tag x)
+coerceParser2 = coerce
+{-# INLINE coerceParser2 #-}
+
+coerceParser3 :: (a -> b -> c -> A.Parser x) -> (a -> b -> c -> Parser tag x)
+coerceParser3 = coerce
+{-# INLINE coerceParser3 #-}
+
+coerceParser4 :: (a -> b -> c -> d -> A.Parser x) -> (a -> b -> c -> d -> Parser tag x)
+coerceParser4 = coerce
+{-# INLINE coerceParser4 #-}
 
 -- | 'aesonToTaggedAesonTH': replace patterns.
 rewritePat :: Pat -> Pat

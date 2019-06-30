@@ -12,6 +12,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module TaggedSpec (spec) where
@@ -275,50 +277,12 @@ instance TypeLits.TypeError ('TypeLits.Text "HashSet@Modded should never be used
       => ToJSON Modded (HashSet a) where
     toJSON = undefined
 
-----------------------------------------------------------------------------
--- Template Haskell deriving (has to be last because of TH sorting)
-----------------------------------------------------------------------------
-
-thDerivingSpec :: Spec
-thDerivingSpec = describe "Template Haskell deriving" $ do
-    -- Note: we are not testing 'deriveFromJSON' and 'deriveToJSON' because
-    -- they are more-or-less tested as part of testing 'deriveJSON'
-    describe "deriveJSON" $ do
-        describe "TH1 NoAeson" $ do
-            it "parseJSON works" $ do
-                parse (parseJSON @NoAeson @TH) [value|"no-aeson"|]
-                    `shouldBe` Success (TH1 NoAeson)
-
-            it "parseJSONList works" $ do
-                parse (parseJSONList @NoAeson @TH) [value|["no-aeson", "no-aeson"]|]
-                    `shouldBe` Success [TH1 NoAeson, TH1 NoAeson]
-
-            it "toJSON works" $ do
-                toJSON @NoAeson (TH1 NoAeson)
-                    `shouldBe` [value|"no-aeson"|]
-
-            it "toJSONList works" $ do
-                toJSONList @NoAeson [TH1 NoAeson, TH1 NoAeson]
-                    `shouldBe` [value|["no-aeson", "no-aeson"]|]
-
-            it "toEncoding works" $ do
-                toEncoding @NoAeson (TH1 NoAeson)
-                    `shouldBe` [encoding|"no-aeson"|]
-
-            it "toEncodingList works" $ do
-                toEncodingList @NoAeson [TH1 NoAeson, TH1 NoAeson]
-                    `shouldBe` [encoding|["no-aeson", "no-aeson"]|]
-
-    -- TODO: use more tests from Aeson itself
-
-    -- TODO: test with lists
-
-    -- TODO: test with Foo a = Foo a (will it replace constraints?)
-
 -- | A type that does not have Aeson instances, only @tagged-aeson@
 -- instances. Also a tag for @tagged-aeson@ instances.
 data NoAeson = NoAeson
     deriving stock (Eq, Show)
+
+-- TODO: change to a number?
 
 instance FromJSON NoAeson NoAeson where
     parseJSON = withText "NoAeson" $ \case
@@ -328,10 +292,99 @@ instance FromJSON NoAeson NoAeson where
 instance ToJSON NoAeson NoAeson where
     toJSON NoAeson = using @Aeson (toJSON ("no-aeson" :: Text))
 
-data TH = TH1 NoAeson
+deriving via WithAeson1 [] NoAeson instance FromJSON NoAeson [NoAeson]
+deriving via WithAeson1 [] NoAeson instance ToJSON NoAeson [NoAeson]
+
+----------------------------------------------------------------------------
+-- Template Haskell deriving (has to be last because of TH sorting)
+----------------------------------------------------------------------------
+
+thDerivingSpec :: Spec
+thDerivingSpec = describe "Template Haskell deriving" $ do
+    -- Note: we are not testing 'deriveFromJSON' and 'deriveToJSON' because
+    -- they are more-or-less tested as part of testing 'deriveJSON'
+    thSingleSpec
+    thListSpec
+
+-- TODO: use more tests from Aeson itself
+
+-- TODO: test with Foo a = Foo a (will it replace constraints?)
+
+-- | A datatype wrapping one field.
+data THSingle = THSingle NoAeson
     deriving stock (Eq, Show)
 
-deriveJSON [t|NoAeson|] A.defaultOptions ''TH
+thSingleSpec :: Spec
+thSingleSpec = describe "THSingle (wrapping one field)" $ do
+    it "deriveJSON/parseJSON works" $ do
+        parse (parseJSON @NoAeson @THSingle) [value|"no-aeson"|]
+            `shouldBe` Success (THSingle NoAeson)
+
+    it "deriveJSON/parseJSONList works" $ do
+        parse (parseJSONList @NoAeson @THSingle) [value|["no-aeson", "no-aeson"]|]
+            `shouldBe` Success [THSingle NoAeson, THSingle NoAeson]
+
+    it "deriveJSON/toJSON works" $ do
+        toJSON @NoAeson (THSingle NoAeson)
+            `shouldBe` [value|"no-aeson"|]
+
+    it "deriveJSON/toJSONList works" $ do
+        toJSONList @NoAeson [THSingle NoAeson, THSingle NoAeson]
+            `shouldBe` [value|["no-aeson", "no-aeson"]|]
+
+    it "deriveJSON/toEncoding works" $ do
+        toEncoding @NoAeson (THSingle NoAeson)
+            `shouldBe` [encoding|"no-aeson"|]
+
+    it "deriveJSON/toEncodingList works" $ do
+        toEncodingList @NoAeson [THSingle NoAeson, THSingle NoAeson]
+            `shouldBe` [encoding|["no-aeson", "no-aeson"]|]
+
+-- | A datatype wrapping a list.
+data THList = THList [NoAeson]
+    deriving stock (Eq, Show)
+
+thListSpec :: Spec
+thListSpec = describe "THList (wrapping one field with a list)" $ do
+    it "deriveJSON/parseJSON works" $ do
+        parse (parseJSON @NoAeson @THList) [value|"no-aeson"|]
+            `shouldBe` Success (THList [NoAeson])
+
+    it "deriveJSON/parseJSONList works" $ do
+        parse (parseJSONList @NoAeson @THList)
+              [value|[["no-aeson"], ["no-aeson", "no-aeson"]]|]
+            `shouldBe` Success [THList [NoAeson], THList [NoAeson, NoAeson]]
+
+    it "deriveJSON/toJSON works" $ do
+        toJSON @NoAeson (THList [NoAeson])
+            `shouldBe` [value|["no-aeson"]|]
+
+    it "deriveJSON/toJSONList works" $ do
+        toJSONList @NoAeson [THList [NoAeson], THList [NoAeson, NoAeson]]
+            `shouldBe` [value|["no-aeson", "no-aeson"]|]
+
+    it "deriveJSON/toEncoding works" $ do
+        toEncoding @NoAeson (THList [NoAeson])
+            `shouldBe` [encoding|["no-aeson"]|]
+
+    it "deriveJSON/toEncodingList works" $ do
+        toEncodingList @NoAeson [THList [NoAeson], THList [NoAeson, NoAeson]]
+            `shouldBe` [encoding|[["no-aeson"], ["no-aeson", "no-aeson"]]|]
+
+-- | An enum datatype.
+data THEnum = THEnum1 | THEnum2
+    deriving stock (Eq, Show)
+
+-- | An ADT.
+data THADT = THADT1 | THADT2 NoAeson
+    deriving stock (Eq, Show)
+
+-- TODO record
 
 -- TODO: which instance will be used for lists?
 -- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble
+
+deriveJSON [t|NoAeson|] A.defaultOptions ''THSingle
+deriveJSON [t|NoAeson|] A.defaultOptions ''THList
+deriveJSON [t|NoAeson|] A.defaultOptions ''THEnum
+deriveJSON [t|NoAeson|] A.defaultOptions ''THADT
