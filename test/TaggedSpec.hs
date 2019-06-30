@@ -349,7 +349,7 @@ data THList = THList [NoAeson]
 thListSpec :: Spec
 thListSpec = describe "THList (wrapping one field with a list)" $ do
     it "deriveJSON/parseJSON works" $ do
-        parse (parseJSON @NoAeson @THList) [value|"no-aeson"|]
+        parse (parseJSON @NoAeson @THList) [value|["no-aeson"]|]
             `shouldBe` Success (THList [NoAeson])
 
     it "deriveJSON/parseJSONList works" $ do
@@ -363,7 +363,7 @@ thListSpec = describe "THList (wrapping one field with a list)" $ do
 
     it "deriveJSON/toJSONList works" $ do
         toJSONList @NoAeson [THList [NoAeson], THList [NoAeson, NoAeson]]
-            `shouldBe` [value|["no-aeson", "no-aeson"]|]
+            `shouldBe` [value|[["no-aeson"], ["no-aeson", "no-aeson"]]|]
 
     it "deriveJSON/toEncoding works" $ do
         toEncoding @NoAeson (THList [NoAeson])
@@ -385,6 +385,11 @@ data THADT = THADT1 | THADT2 NoAeson
 
 -- TODO: which instance will be used for lists?
 -- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble
+
+-- TODO: make sure 'parse2ElemArray' is also exercised
+
+-- TODO: make sure the 'conKey' hack doesn't interfere with parsing of
+-- record fields named "conKey"
 
 deriveJSON [t|NoAeson|] A.defaultOptions ''THSingle
 deriveJSON [t|NoAeson|] A.defaultOptions ''THList
