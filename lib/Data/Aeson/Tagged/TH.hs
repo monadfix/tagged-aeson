@@ -19,11 +19,10 @@ import Data.Generics.Uniplate.Data (Biplate, transformBi)
 import Language.Haskell.TH
 import Data.DList (DList)
 import qualified Data.DList as DList
-
-import qualified Data.Aeson          as A
-import qualified Data.Aeson.Types    as A
-import qualified Data.Aeson.TH       as A
-import qualified Data.Aeson.Encoding          as E
+import qualified Data.Aeson as A
+import qualified Data.Aeson.Types as A
+import qualified Data.Aeson.TH as A
+import qualified Data.Aeson.Encoding as E
 import qualified Data.Aeson.Encoding.Internal as E
 
 import Data.Aeson.Tagged.Wrapped

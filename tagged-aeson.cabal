@@ -27,7 +27,7 @@ library
   exposed-modules:
     Data.Aeson.Tagged
     Data.Aeson.Tagged.TH
-    Data.Aeson.Tagged.Types
+    Data.Aeson.Tagged.Aeson
     Data.Aeson.Tagged.Wrapped
     Data.Aeson.Tagged.Classes
     Data.Aeson.Tagged.Explicit

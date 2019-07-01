@@ -35,7 +35,6 @@ import qualified Data.Vector as V
 import qualified Data.Set as S
 import qualified Data.HashSet as HS
 import Data.Hashable (Hashable)
-
 import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.Encoding.Internal as E
 

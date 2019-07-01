@@ -17,10 +17,9 @@ import BasePrelude
 import qualified Data.Vector as V
 import Data.Text
 import qualified Data.HashMap.Strict as HM
-
-import qualified Data.Aeson.Types    as A
+import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.Internal as A
-import qualified Data.Aeson.Encoding          as E
+import qualified Data.Aeson.Encoding as E
 import qualified Data.Aeson.Encoding.Internal as E
 
 import Data.Aeson.Tagged.Wrapped

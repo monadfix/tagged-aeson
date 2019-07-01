@@ -1,12 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Data.Aeson.Tagged.Types
+module Data.Aeson.Tagged.Aeson
 (
-    -- * Interop between aeson and tagged-aeson
     Aeson,
     TaggedAeson(..), fromTaggedAeson,
-
-    -- * Lifting instances from Aeson
     WithAeson(..),
     WithAeson1(..),
 )
@@ -24,7 +21,7 @@ import Data.Aeson.Tagged.Classes
 import Data.Aeson.Tagged.Explicit
 
 ----------------------------------------------------------------------------
--- Interop between Aeson and tagged-aeson
+-- Aeson
 ----------------------------------------------------------------------------
 
 -- | The tag for original Aeson instances. You can use @'parseJSON'
@@ -40,6 +37,10 @@ instance A.ToJSON a => ToJSON Aeson a where
     toEncoding = coerce (A.toEncoding @a)
     toJSONList = coerce (A.toJSONList @a)
     toEncodingList = coerce (A.toEncodingList @a)
+
+----------------------------------------------------------------------------
+-- TaggedAeson
+----------------------------------------------------------------------------
 
 -- | A newtype wrapper to use tagged-aeson instances with functions from
 -- Aeson (or @yaml@).
@@ -65,7 +66,7 @@ instance ToJSON tag a => A.ToJSON (TaggedAeson tag a) where
     toEncodingList = coerce @([a] -> Encoding tag) toEncodingList
 
 ----------------------------------------------------------------------------
--- Lifting instances from Aeson
+-- WithAeson
 ----------------------------------------------------------------------------
 
 -- |
@@ -83,6 +84,10 @@ instance A.ToJSON a => ToJSON tag (WithAeson a) where
     toJSONList = coerce (A.toJSONList @a)
     toEncoding = coerce (A.toEncoding @a)
     toEncodingList = coerce (A.toEncodingList @a)
+
+----------------------------------------------------------------------------
+-- WithAeson1
+----------------------------------------------------------------------------
 
 newtype WithAeson1 f a = WithAeson1 (f a)
 

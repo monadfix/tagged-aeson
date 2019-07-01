@@ -73,7 +73,7 @@ where
 import Data.Aeson.Tagged.Wrapped
 import Data.Aeson.Tagged.Classes
 import Data.Aeson.Tagged.Explicit
-import Data.Aeson.Tagged.Types
+import Data.Aeson.Tagged.Aeson
 import Data.Aeson.Tagged.TH
 
 -- TODO: add decode and friends

@@ -39,7 +39,6 @@ import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
 import Control.DeepSeq (NFData)
 import Data.Hashable (Hashable)
-
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.Internal as A
