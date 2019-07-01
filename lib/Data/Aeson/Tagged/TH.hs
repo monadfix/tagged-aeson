@@ -92,15 +92,20 @@ rewriteType tag a = case lookup a types of
     Nothing -> a
   where
     types =
-        [ (ConT ''A.ToJSON  , ConT ''ToJSON)
-        , (ConT ''A.FromJSON, ConT ''FromJSON)
-        , (ConT ''A.Parser  , ConT ''Parser)
-        , (ConT ''A.Value   , ConT ''Value)
-        , (ConT ''A.Encoding, ConT ''Encoding)
-        , (ConT ''A.Series  , ConT ''Series)
-        , (ConT ''A.Object  , ConT ''Object)
-        , (ConT ''A.Array   , ConT ''Array)
-        , (ConT ''A.Pair    , ConT ''Pair)
+        [ (ConT ''A.ToJSON   , ConT ''ToJSON)
+        , (ConT ''A.FromJSON , ConT ''FromJSON)
+        , (ConT ''A.Parser   , ConT ''Parser)
+        , (ConT ''A.Value    , ConT ''Value)
+        , (ConT ''A.Encoding , ConT ''Encoding)
+        , (ConT ''A.Series   , ConT ''Series)
+        , (ConT ''A.Object   , ConT ''Object)
+        , (ConT ''A.Array    , ConT ''Array)
+        , (ConT ''A.Pair     , ConT ''Pair)
+        -- unsupported
+        , (ConT ''A.ToJSON1   , error "rewriteType: ToJSON1 is not supported yet")
+        , (ConT ''A.ToJSON2   , error "rewriteType: ToJSON2 is not supported yet")
+        , (ConT ''A.FromJSON1 , error "rewriteType: FromJSON1 is not supported yet")
+        , (ConT ''A.FromJSON2 , error "rewriteType: FromJSON2 is not supported yet")
         ]
 
 ----------------------------------------------------------------------------
@@ -135,18 +140,34 @@ rewriteExp tag = \case
 
     exps :: [(Name, Name)]
     exps =
-        [ ('A.toJSON        , 'toJSON)
-        , ('A.toJSONList    , 'toJSONList)
-        , ('A.toEncodingList, 'toEncodingList)
-        , ('A.parseJSON     , 'parseJSON)
-        , ('A.parseJSONList , 'parseJSONList)
-        , ('(A..:)          , '(.:))
-        , ('E.text          , 'encoding_text)
-        , ('E.comma         , 'encoding_comma)
-        , ('(E.><)          , 'encoding_append)
-        , ('E.wrapObject    , 'encoding_wrapObject)
-        , ('E.wrapArray     , 'encoding_wrapArray)
-        -- TODO more
+        [ ('A.toJSON         , 'toJSON)
+        , ('A.toJSONList     , 'toJSONList)
+        , ('A.toEncoding     , 'toEncoding)
+        , ('A.toEncodingList , 'toEncodingList)
+        , ('A.parseJSON      , 'parseJSON)
+        , ('A.parseJSONList  , 'parseJSONList)
+        , ('(A..:)           , '(.:))
+        , ('E.text           , 'encoding_text)
+        , ('E.comma          , 'encoding_comma)
+        , ('(E.><)           , 'encoding_append)
+        , ('E.wrapObject     , 'encoding_wrapObject)
+        , ('E.wrapArray      , 'encoding_wrapArray)
+        -- unsupported
+        , ('A.liftToJSON          , error "liftToJSON is not supported yet")
+        , ('A.liftToJSON2         , error "liftToJSON2 is not supported yet")
+        , ('A.liftToEncoding      , error "liftToEncoding is not supported yet")
+        , ('A.liftToEncoding2     , error "liftToEncoding2 is not supported yet")
+        , ('A.liftParseJSON       , error "liftParseJSON is not supported yet")
+        , ('A.liftParseJSON2      , error "liftParseJSON2 is not supported yet")
+        , ('A.toJSONList          , error "toJSONList is not supported yet")
+        , ('A.liftToJSONList      , error "liftToJSONList is not supported yet")
+        , ('A.liftToJSONList2     , error "liftToJSONList2 is not supported yet")
+        , ('A.toEncodingList      , error "toEncodingList is not supported yet")
+        , ('A.liftToEncodingList  , error "liftToEncodingList is not supported yet")
+        , ('A.liftToEncodingList2 , error "liftToEncodingList2 is not supported yet")
+        , ('A.parseJSONList       , error "parseJSONList is not supported yet")
+        , ('A.liftParseJSONList   , error "liftParseJSONList is not supported yet")
+        , ('A.liftParseJSONList2  , error "liftParseJSONList2 is not supported yet")
         ]
 
     -- TODO: this is brittle. Perhaps TH code should use Aeson's Parser, and

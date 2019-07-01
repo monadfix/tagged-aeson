@@ -42,6 +42,8 @@ tests:
     dependencies:
       - hspec
       - tagged-aeson
+      - hedgehog
+      - hw-hspec-hedgehog
 
 dependencies:
   - base >=4.8 && <5
