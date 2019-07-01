@@ -1,0 +1,76 @@
+name: tagged-aeson
+version: '1.0.0'
+synopsis: Have many Aeson instances for the same type!
+description: |
+  This package provides alternative 'FromJSON' and 'ToJSON' classes
+  that come equipped with a tag. This lets you have several different
+  Aeson instances for the same type.
+category: Text, Web, JSON
+author: Artyom Kazak
+maintainer: Monadfix <hi@monadfix.com>
+license: BSD3
+
+homepage: https://github.com/monadfix/tagged-aeson
+bug-reports: https://github.com/monadfix/tagged-aeson/issues
+git: git://github.com/monadfix/tagged-aeson.git
+
+extra-source-files:
+  - CHANGELOG.md
+
+tested-with: ghc ==8.6.4 ghc ==8.4.4
+
+library:
+  source-dirs: lib
+  exposed-modules:
+    - Data.Aeson.Tagged
+    - Data.Aeson.Tagged.TH
+    - Data.Aeson.Tagged.Aeson
+    - Data.Aeson.Tagged.Wrapped
+    - Data.Aeson.Tagged.Classes
+    - Data.Aeson.Tagged.Explicit
+  dependencies:
+    - deepseq
+    - dlist
+    - hashable
+    - scientific
+    - uniplate
+
+tests:
+  tests:
+    main: Spec.hs
+    source-dirs: test
+    dependencies:
+      - hspec
+      - tagged-aeson
+
+dependencies:
+  - base >=4.8 && <5
+  - aeson
+  - base-prelude
+  - containers
+  - text
+  - th-lift
+  - unordered-containers
+  - vector
+  - template-haskell >=2.12 && <2.15
+
+default-extensions:
+  - ScopedTypeVariables
+  - TypeApplications
+  - RankNTypes
+  - KindSignatures
+  - PolyKinds
+  - LambdaCase
+  - ViewPatterns
+  - DefaultSignatures
+  - DerivingStrategies
+  - FlexibleInstances
+  - PatternSynonyms
+  - MultiParamTypeClasses
+  - FunctionalDependencies
+  - DeriveLift
+  - StandaloneDeriving
+
+ghc-options:
+  - -Wall
+  - -Wno-unused-do-bind
