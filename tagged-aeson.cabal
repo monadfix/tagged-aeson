@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 44173f781987892e72223ed3595ddabef118e5c0a466648a82c9782cc70aee49
+-- hash: d128aa3c3cbd39730aefdbdc612703be77b5b3726e3d453b99e23470eef195bc
 
 name:           tagged-aeson
 version:        1.0.0
@@ -63,9 +63,10 @@ test-suite tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Data.Aeson.Tagged.AesonSpec
+      Data.Aeson.Tagged.ClassesSpec
       Data.Aeson.Tagged.ExplicitSpec
       Data.Aeson.Tagged.THSpec
-      Data.Aeson.TaggedSpec
       Types
       Utils
       Paths_tagged_aeson
