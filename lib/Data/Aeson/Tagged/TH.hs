@@ -18,10 +18,12 @@ import Data.Text (Text)
 import Data.Generics.Uniplate.Data (Biplate, transformBi)
 import Language.Haskell.TH
 import Data.DList (DList)
+import qualified Data.HashMap.Strict as HM
 import qualified Data.DList as DList
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.TH as A
+import qualified Data.Aeson.Internal as A
 import qualified Data.Aeson.Encoding as E
 import qualified Data.Aeson.Encoding.Internal as E
 
@@ -117,6 +119,8 @@ rewriteExp tag = \case
               VarE 'internal_fromPairs
         | name `eqInternalName` ("Data.Aeson.Types.ToJSON", "pair") ->
               VarE 'internal_pair
+        | name `eqInternalName` ("Data.Aeson.TH", "lookupField") ->
+              VarE 'lookupField
     ConE name
         -- TODO try to find tests where more of these would be needed
         | name == 'A.Array -> ConE 'Array
@@ -255,18 +259,8 @@ packageNameOnly =
     T.pack
 
 {-
-keyValuePairWith
-(.=)
-parseUntaggedValue
-parseTaggedObject
-parseValue
-consToValue
-toPair
-sumToValue
-
-If the result has any FromJSON/ToJSON constraints from Aeson, it will not compile (?)
-
-todo: check what the different encoding of 'String' will change (will it change tags? I guess it shouldn't)
+todo: check what the different encoding of 'String' will change (will it
+change tags? I guess it shouldn't)
 -}
 
 -- | Our copy of @FromPairs@. The original is not exported from Aeson.
@@ -288,6 +282,40 @@ instance (v ~ Value tag) => KeyValuePair v (DList (Pair tag)) where
 
 instance (e ~ Encoding tag) => KeyValuePair e (Series tag) where
     internal_pair = coerce E.pairStr
+
+-- | Our copy of @LookupField@. The original is not exported from Aeson.
+--
+-- TODO: perhaps we shouldn't have @Maybe a@ support there, or it should be
+-- optional and disabled by default. Or perhaps it should rely on the @Maybe@
+-- instance if it's present.
+class LookupField a where
+    lookupField :: (Value any -> Parser tag a) -> String -> String
+                -> Object any -> T.Text -> Parser tag a
+
+instance {-# OVERLAPPABLE #-} LookupField a where
+    lookupField pj tName rec obj key =
+        case HM.lookup key obj of
+            Nothing -> unknownFieldFail tName rec (T.unpack key)
+            Just v  -> pj v <?> A.Key key
+
+instance {-# INCOHERENT #-} LookupField (Maybe a) where
+    lookupField pj _ _ obj key =
+        case HM.lookup key obj of
+            Nothing -> pure Nothing
+            Just v  -> pj v <?> A.Key key
+
+unknownFieldFail :: String -> String -> String -> Parser tag fail
+unknownFieldFail tName rec key =
+    fail $ printf "When parsing the record %s of type %s the key %s was not present."
+                  rec tName key
+
+{- TODO what is this for?
+
+instance {-# INCOHERENT #-} LookupField (Semigroup.Option a) where
+    lookupField pj tName rec obj key =
+        fmap Semigroup.Option
+             (lookupField (fmap Semigroup.getOption . pj) tName rec obj key)
+-}
 
 ----------------------------------------------------------------------------
 -- Other
