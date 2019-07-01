@@ -6,9 +6,6 @@ module Data.Aeson.Tagged.Types
     Aeson,
     TaggedAeson(..), fromTaggedAeson,
 
-    -- * Encoding combinators
-    KeyValue(..),
-
     -- * Lifting instances from Aeson
     WithAeson(..),
     WithAeson1(..),
@@ -16,14 +13,10 @@ module Data.Aeson.Tagged.Types
 where
 
 import BasePrelude
-import Data.Text (Text)
-import qualified Data.HashMap.Strict as HM
 import qualified Data.Set as S
 import qualified Data.HashSet as HS
 import Data.Hashable (Hashable)
-
 import qualified Data.Aeson as A
-import qualified Data.Aeson.Encoding as E
 import qualified Data.Aeson.Encoding.Internal as E
 
 import Data.Aeson.Tagged.Wrapped
@@ -70,33 +63,6 @@ instance ToJSON tag a => A.ToJSON (TaggedAeson tag a) where
     toJSONList = coerce @([a] -> Value tag) toJSONList
     toEncoding = coerce @(a -> Encoding tag) toEncoding
     toEncodingList = coerce @([a] -> Encoding tag) toEncodingList
-
-----------------------------------------------------------------------------
--- KeyValue
-----------------------------------------------------------------------------
-
--- | A key-value pair for encoding a JSON object.
-class KeyValue (tag :: k) kv | kv -> tag where
-    (.=) :: ToJSON tag v => Text -> v -> kv
-    infixr 8 .=
-
-instance KeyValue tag (Series tag) where
-    name .= value =
-        coerce E.pair
-            name
-            (toEncoding @tag value)
-    {-# INLINE (.=) #-}
-
-instance KeyValue tag (Pair tag) where
-    name .= value = (name, toJSON value)
-    {-# INLINE (.=) #-}
-
--- | Constructs a singleton 'HM.HashMap'. For calling functions that
---   demand an 'Object' for constructing objects. To be used in
---   conjunction with 'mconcat'. Prefer to use 'object' where possible.
-instance KeyValue tag (Object tag) where
-    name .= value = HM.singleton name (toJSON value)
-    {-# INLINE (.=) #-}
 
 ----------------------------------------------------------------------------
 -- Lifting instances from Aeson

@@ -6,6 +6,7 @@ module Data.Aeson.Tagged.Classes
     -- * Classes
     FromJSON(..),
     ToJSON(..),
+    KeyValue(..),
 
     -- * Combinators
     (.:), (.:?), (.:!),
@@ -23,6 +24,10 @@ import qualified Data.Aeson.Encoding          as E
 import qualified Data.Aeson.Encoding.Internal as E
 
 import Data.Aeson.Tagged.Wrapped
+
+----------------------------------------------------------------------------
+-- FromJSON
+----------------------------------------------------------------------------
 
 -- | tagged-aeson does not provide any 'FromJSON' instances. You have
 -- several options for writing them:
@@ -65,6 +70,14 @@ class FromJSON (tag :: k) a where
     parseJSONList = withArray "[]" $
         zipWithM (parseIndexedJSON parseJSON) [0..] . V.toList
 
+instance FromJSON tag (Value any) where
+    parseJSON = pure . coerce
+    {-# INLINE parseJSON #-}
+
+----------------------------------------------------------------------------
+-- ToJSON
+----------------------------------------------------------------------------
+
 class ToJSON (tag :: k) a where
     toJSON :: a -> Value tag
 
@@ -79,6 +92,39 @@ class ToJSON (tag :: k) a where
     toEncodingList :: [a] -> Encoding tag
     toEncodingList = coerce (A.listEncoding @a) (toEncoding @tag @a)
     {-# INLINE toEncodingList #-}
+
+instance ToJSON tag (Value any) where
+    toJSON = coerce
+    {-# INLINE toJSON #-}
+    toEncoding = coerce E.value
+    {-# INLINE toEncoding #-}
+
+----------------------------------------------------------------------------
+-- KeyValue
+----------------------------------------------------------------------------
+
+-- | A key-value pair for encoding a JSON object.
+class KeyValue (tag :: k) kv | kv -> tag where
+    (.=) :: ToJSON tag v => Text -> v -> kv
+    infixr 8 .=
+
+instance KeyValue tag (Series tag) where
+    name .= value =
+        coerce E.pair
+            name
+            (toEncoding @tag value)
+    {-# INLINE (.=) #-}
+
+instance KeyValue tag (Pair tag) where
+    name .= value = (name, toJSON value)
+    {-# INLINE (.=) #-}
+
+-- | Constructs a singleton 'HM.HashMap'. For calling functions that
+--   demand an 'Object' for constructing objects. To be used in
+--   conjunction with 'mconcat'. Prefer to use 'object' where possible.
+instance KeyValue tag (Object tag) where
+    name .= value = HM.singleton name (toJSON value)
+    {-# INLINE (.=) #-}
 
 ----------------------------------------------------------------------------
 -- Combinators
@@ -125,17 +171,3 @@ class ToJSON (tag :: k) a where
     Nothing -> pure Nothing
     Just v  -> Just <$> parseJSON v <?> A.Key key
 {-# INLINE (.:!) #-}
-
-----------------------------------------------------------------------------
--- Instances
-----------------------------------------------------------------------------
-
-instance FromJSON tag (Value any) where
-    parseJSON = pure . coerce
-    {-# INLINE parseJSON #-}
-
-instance ToJSON tag (Value any) where
-    toJSON = coerce
-    {-# INLINE toJSON #-}
-    toEncoding = coerce E.value
-    {-# INLINE toEncoding #-}
