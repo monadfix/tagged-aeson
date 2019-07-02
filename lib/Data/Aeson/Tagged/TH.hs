@@ -102,11 +102,12 @@ rewriteType tag a = case lookup a types of
         , (ConT ''A.Array    , ConT ''Array)
         , (ConT ''A.Pair     , ConT ''Pair)
         -- unsupported
-        , (ConT ''A.ToJSON1   , error "rewriteType: ToJSON1 is not supported yet")
-        , (ConT ''A.ToJSON2   , error "rewriteType: ToJSON2 is not supported yet")
-        , (ConT ''A.FromJSON1 , error "rewriteType: FromJSON1 is not supported yet")
-        , (ConT ''A.FromJSON2 , error "rewriteType: FromJSON2 is not supported yet")
+        , (ConT ''A.ToJSON1   , unsupported "ToJSON1")
+        , (ConT ''A.ToJSON2   , unsupported "ToJSON2")
+        , (ConT ''A.FromJSON1 , unsupported "FromJSON1")
+        , (ConT ''A.FromJSON2 , unsupported "FromJSON2")
         ]
+    unsupported name = error ("rewriteType: " ++ name ++ " is not supported yet")
 
 ----------------------------------------------------------------------------
 -- Replace function applications
@@ -153,22 +154,23 @@ rewriteExp tag = \case
         , ('E.wrapObject     , 'encoding_wrapObject)
         , ('E.wrapArray      , 'encoding_wrapArray)
         -- unsupported
-        , ('A.liftToJSON          , error "liftToJSON is not supported yet")
-        , ('A.liftToJSON2         , error "liftToJSON2 is not supported yet")
-        , ('A.liftToEncoding      , error "liftToEncoding is not supported yet")
-        , ('A.liftToEncoding2     , error "liftToEncoding2 is not supported yet")
-        , ('A.liftParseJSON       , error "liftParseJSON is not supported yet")
-        , ('A.liftParseJSON2      , error "liftParseJSON2 is not supported yet")
-        , ('A.toJSONList          , error "toJSONList is not supported yet")
-        , ('A.liftToJSONList      , error "liftToJSONList is not supported yet")
-        , ('A.liftToJSONList2     , error "liftToJSONList2 is not supported yet")
-        , ('A.toEncodingList      , error "toEncodingList is not supported yet")
-        , ('A.liftToEncodingList  , error "liftToEncodingList is not supported yet")
-        , ('A.liftToEncodingList2 , error "liftToEncodingList2 is not supported yet")
-        , ('A.parseJSONList       , error "parseJSONList is not supported yet")
-        , ('A.liftParseJSONList   , error "liftParseJSONList is not supported yet")
-        , ('A.liftParseJSONList2  , error "liftParseJSONList2 is not supported yet")
+        , ('A.liftToJSON          , unsupported "liftToJSON")
+        , ('A.liftToJSON2         , unsupported "liftToJSON2")
+        , ('A.liftToEncoding      , unsupported "liftToEncoding")
+        , ('A.liftToEncoding2     , unsupported "liftToEncoding2")
+        , ('A.liftParseJSON       , unsupported "liftParseJSON")
+        , ('A.liftParseJSON2      , unsupported "liftParseJSON2")
+        , ('A.toJSONList          , unsupported "toJSONList")
+        , ('A.liftToJSONList      , unsupported "liftToJSONList")
+        , ('A.liftToJSONList2     , unsupported "liftToJSONList2")
+        , ('A.toEncodingList      , unsupported "toEncodingList")
+        , ('A.liftToEncodingList  , unsupported "liftToEncodingList")
+        , ('A.liftToEncodingList2 , unsupported "liftToEncodingList2")
+        , ('A.parseJSONList       , unsupported "parseJSONList")
+        , ('A.liftParseJSONList   , unsupported "liftParseJSONList")
+        , ('A.liftParseJSONList2  , unsupported "liftParseJSONList2")
         ]
+    unsupported name = error ("rewriteExp: " ++ name ++ " is not supported yet")
 
     -- TODO: this is brittle. Perhaps TH code should use Aeson's Parser, and
     -- only convert to tagged-aeson at the end? (I'm scared of that
