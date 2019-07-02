@@ -24,6 +24,7 @@ import qualified Hedgehog.Range as Range
 import HaskellWorks.Hspec.Hedgehog
 
 import Utils
+import Types
 
 spec :: Spec
 spec = describe "Template Haskell deriving" $ do
@@ -61,25 +62,6 @@ data Derived
 -- | A tag for correct instances, either written manually or derived with
 -- Aeson's help.
 data Golden
-
-----------------------------------------------------------------------------
--- Int'
-----------------------------------------------------------------------------
-
--- | An 'Int' wrapper without Aeson instances.
-newtype Int' = Int' Int
-    deriving stock (Eq, Show)
-    deriving newtype (Num)
-
-deriving via WithAeson Int instance FromJSON any Int'
-deriving via WithAeson Int instance ToJSON any Int'
-
--- TODO get rid of?
-deriving via WithAeson [Int] instance FromJSON any [Int']
-deriving via WithAeson [Int] instance ToJSON any [Int']
-
-genInt' :: Gen Int'
-genInt' = Int' <$> Gen.int (Range.linear 0 1000)
 
 ----------------------------------------------------------------------------
 -- Hedgehog properties
