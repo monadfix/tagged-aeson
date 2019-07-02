@@ -6,7 +6,6 @@ module Data.Aeson.Tagged.ExplicitSpec (spec) where
 
 import BasePrelude
 import Data.Aeson.Tagged
-import Data.Text (Text)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Vector as V
 import qualified Data.Set as S
@@ -26,6 +25,12 @@ spec = describe "explicit decoders/encoders" $ do
     explicitHashSetSpec
 
 ----------------------------------------------------------------------------
+-- Tags
+----------------------------------------------------------------------------
+
+data Test
+
+----------------------------------------------------------------------------
 -- parseList, listToJSON, listToEncoding
 ----------------------------------------------------------------------------
 
@@ -33,20 +38,18 @@ explicitListSpec :: Spec
 explicitListSpec = describe "lists" $ do
     describe "parseList" $ do
         it "uses tagged-aeson for list elements" $ do
-            parse (parseList @Modded @Text) [value|["a"]|]
-                `shouldBe` Error "expected modded text"
-            parse (parseList @Modded @Text) [value|["modded:a", "modded:b"]|]
-                `shouldBe` Success ["a", "b"]
+            parse (parseList @Test @Int') [value|[1,2]|]
+                `shouldBe` Success [1, 2]
 
     describe "listToJSON" $ do
         it "uses tagged-aeson for list elements" $ do
-            listToJSON @Modded @Text ["a"]
-                `shouldBe` [value|["modded:a"]|]
+            listToJSON @Test @Int' [1]
+                `shouldBe` [value|[1]|]
 
     describe "listToEncoding" $ do
         it "uses tagged-aeson for list elements" $ do
-            listToEncoding @Modded @Text ["a"]
-                `shouldBe` [encoding|["modded:a"]|]
+            listToEncoding @Test @Int' [1]
+                `shouldBe` [encoding|[1]|]
 
 ----------------------------------------------------------------------------
 -- parseNonEmpty, nonEmptyToJSON, nonEmptyToEncoding
@@ -56,24 +59,22 @@ explicitNonEmptySpec :: Spec
 explicitNonEmptySpec = describe "NonEmpty" $ do
     describe "parseNonEmpty" $ do
         it "uses tagged-aeson for list elements" $ do
-            parse (parseNonEmpty @Modded @Text) [value|["a"]|]
-                `shouldBe` Error "expected modded text"
-            parse (parseNonEmpty @Modded @Text) [value|["modded:a", "modded:b"]|]
-                `shouldBe` Success (NE.fromList ["a", "b"])
+            parse (parseNonEmpty @Test @Int') [value|[1,2]|]
+                `shouldBe` Success (NE.fromList [1, 2])
 
         it "does not parse empty lists" $ do
-            parse (parseNonEmpty @Modded @Text) [value|[]|]
+            parse (parseNonEmpty @Test @Int') [value|[]|]
                 `shouldBe` Error "parsing NonEmpty failed, unpexpected empty list"
 
     describe "nonEmptyToJSON" $ do
         it "uses tagged-aeson for list elements" $ do
-            nonEmptyToJSON @Modded @Text (NE.fromList ["a"])
-                `shouldBe` [value|["modded:a"]|]
+            nonEmptyToJSON @Test @Int' (NE.fromList [1, 2])
+                `shouldBe` [value|[1,2]|]
 
     describe "nonEmptyToEncoding" $ do
         it "uses tagged-aeson for list elements" $ do
-            nonEmptyToEncoding @Modded @Text (NE.fromList ["a"])
-                `shouldBe` [encoding|["modded:a"]|]
+            nonEmptyToEncoding @Test @Int' (NE.fromList [1, 2])
+                `shouldBe` [encoding|[1,2]|]
 
 ----------------------------------------------------------------------------
 -- parseVector, vectorToJSON, vectorToEncoding
@@ -83,20 +84,18 @@ explicitVectorSpec :: Spec
 explicitVectorSpec = describe "Vector" $ do
     describe "parseVector" $ do
         it "uses tagged-aeson for vector elements" $ do
-            parse (parseVector @Modded @Text) [value|["a"]|]
-                `shouldBe` Error "expected modded text"
-            parse (parseVector @Modded @Text) [value|["modded:a", "modded:b"]|]
-                `shouldBe` Success (V.fromList ["a", "b"])
+            parse (parseVector @Test @Int') [value|[1,2]|]
+                `shouldBe` Success (V.fromList [1, 2])
 
     describe "vectorToJSON" $ do
         it "uses tagged-aeson for vector elements" $ do
-            vectorToJSON @Modded @Text (V.fromList ["a"])
-                `shouldBe` [value|["modded:a"]|]
+            vectorToJSON @Test @Int' (V.fromList [1, 2])
+                `shouldBe` [value|[1,2]|]
 
     describe "vectorToEncoding" $ do
         it "uses tagged-aeson for vector elements" $ do
-            vectorToEncoding @Modded @Text (V.fromList ["a"])
-                `shouldBe` [encoding|["modded:a"]|]
+            vectorToEncoding @Test @Int' (V.fromList [1, 2])
+                `shouldBe` [encoding|[1,2]|]
 
 ----------------------------------------------------------------------------
 -- parseSet, setToJSON, setToEncoding
@@ -106,20 +105,18 @@ explicitSetSpec :: Spec
 explicitSetSpec = describe "Set" $ do
     describe "parseSet" $ do
         it "uses tagged-aeson for list elements" $ do
-            parse (parseSet @Modded @Text) [value|["a"]|]
-                `shouldBe` Error "expected modded text"
-            parse (parseSet @Modded @Text) [value|["modded:a", "modded:b"]|]
-                `shouldBe` Success (S.fromList ["a", "b"])
+            parse (parseSet @Test @Int') [value|[1,2]|]
+                `shouldBe` Success (S.fromList [1, 2])
 
     describe "setToJSON" $ do
         it "uses tagged-aeson for list elements" $ do
-            setToJSON @Modded @Text (S.fromList ["a"])
-                `shouldBe` [value|["modded:a"]|]
+            setToJSON @Test @Int' (S.fromList [1, 2])
+                `shouldBe` [value|[1,2]|]
 
     describe "setToEncoding" $ do
         it "uses tagged-aeson for list elements" $ do
-            setToEncoding @Modded @Text (S.fromList ["a"])
-                `shouldBe` [encoding|["modded:a"]|]
+            setToEncoding @Test @Int' (S.fromList [1, 2])
+                `shouldBe` [encoding|[1,2]|]
 
 ----------------------------------------------------------------------------
 -- parseHashSet, hashSetToJSON, hashSetToEncoding
@@ -129,17 +126,15 @@ explicitHashSetSpec :: Spec
 explicitHashSetSpec = describe "HashSet" $ do
     describe "parseHashSet" $ do
         it "uses tagged-aeson for list elements" $ do
-            parse (parseHashSet @Modded @Text) [value|["a"]|]
-                `shouldBe` Error "expected modded text"
-            parse (parseHashSet @Modded @Text) [value|["modded:a", "modded:b"]|]
-                `shouldBe` Success (HS.fromList ["a", "b"])
+            parse (parseHashSet @Test @Int') [value|[1,2]|]
+                `shouldBe` Success (HS.fromList [1, 2])
 
     describe "hashSetToJSON" $ do
         it "uses tagged-aeson for list elements" $ do
-            hashSetToJSON @Modded @Text (HS.fromList ["a"])
-                `shouldBe` [value|["modded:a"]|]
+            hashSetToJSON @Test @Int' (HS.fromList [1, 2])
+                `shouldBe` [value|[1,2]|]
 
     describe "hashSetToEncoding" $ do
         it "uses tagged-aeson for list elements" $ do
-            hashSetToEncoding @Modded @Text (HS.fromList ["a"])
-                `shouldBe` [encoding|["modded:a"]|]
+            hashSetToEncoding @Test @Int' (HS.fromList [1, 2])
+                `shouldBe` [encoding|[1,2]|]

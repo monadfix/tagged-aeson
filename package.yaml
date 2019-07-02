@@ -29,9 +29,7 @@ library:
     - Data.Aeson.Tagged.Classes
     - Data.Aeson.Tagged.Explicit
   dependencies:
-    - deepseq
     - dlist
-    - hashable
     - scientific
     - uniplate
 
@@ -54,6 +52,8 @@ dependencies:
   - th-lift
   - unordered-containers
   - vector
+  - hashable
+  - deepseq
   - template-haskell >=2.12 && <2.15
 
 default-extensions:

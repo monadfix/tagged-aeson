@@ -20,6 +20,7 @@ import Data.HashSet (HashSet)
 import Data.Text as T
 import Data.Aeson.Tagged
 import qualified GHC.TypeLits as TypeLits
+import Data.Hashable
 
 import Hedgehog
 import qualified Hedgehog.Gen as Gen
@@ -32,8 +33,8 @@ import qualified Hedgehog.Range as Range
 -- | An 'Int' wrapper without Aeson instances and with @tagged-aeson@
 -- instances for all tags.
 newtype Int' = Int' Int
-    deriving stock (Eq, Show)
-    deriving newtype (Num)
+    deriving stock (Eq, Ord, Show)
+    deriving newtype (Num, Hashable)
 
 deriving via WithAeson Int instance FromJSON any Int'
 deriving via WithAeson Int instance ToJSON any Int'

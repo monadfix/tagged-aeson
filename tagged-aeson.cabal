@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b488196aa1a2fc248b38a1605f8c1fa5dcf0238a1a730b2f5d1521e1fa044e7b
+-- hash: a1dc815eb05d2b8c014348eb6eb33312f1b7d4d7afa3060725cf876d4a72281a
 
 name:           tagged-aeson
 version:        1.0.0
@@ -79,6 +79,8 @@ test-suite tests
     , base >=4.8 && <5
     , base-prelude
     , containers
+    , deepseq
+    , hashable
     , hedgehog
     , hspec
     , hw-hspec-hedgehog
