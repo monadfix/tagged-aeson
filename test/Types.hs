@@ -8,8 +8,6 @@
 module Types
 (
     Modded,
-    NoAeson,
-    Int'(..),
 )
 where
 
@@ -19,7 +17,6 @@ import Data.Set (Set)
 import Data.HashSet (HashSet)
 import Data.Text as T
 import Data.Aeson.Tagged
-import qualified Data.Aeson as A
 import qualified GHC.TypeLits as TypeLits
 
 ----------------------------------------------------------------------------
@@ -69,28 +66,3 @@ instance TypeLits.TypeError ('TypeLits.Text "Set@Modded should never be used")
 instance TypeLits.TypeError ('TypeLits.Text "HashSet@Modded should never be used")
       => ToJSON Modded (HashSet a) where
     toJSON = undefined
-
-----------------------------------------------------------------------------
--- NoAeson
-----------------------------------------------------------------------------
-
--- | A tag for types that don't have Aeson instances, only @tagged-aeson@
--- instances.
-data NoAeson
-
-newtype Int' = Int' Int
-    deriving stock (Eq, Show)
-    deriving newtype (Num)
-
-instance TypeLits.TypeError ('TypeLits.Text "Int' does not have Aeson instances")
-      => A.FromJSON Int' where
-    parseJSON = undefined
-instance TypeLits.TypeError ('TypeLits.Text "Int' does not have Aeson instances")
-      => A.ToJSON Int' where
-    toJSON = undefined
-
-deriving via WithAeson Int instance FromJSON NoAeson Int'
-deriving via WithAeson Int instance ToJSON NoAeson Int'
-
-deriving via WithAeson [Int] instance FromJSON NoAeson [Int']
-deriving via WithAeson [Int] instance ToJSON NoAeson [Int']
