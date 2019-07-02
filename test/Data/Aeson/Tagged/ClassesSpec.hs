@@ -6,7 +6,6 @@ module Data.Aeson.Tagged.ClassesSpec (spec) where
 
 import BasePrelude
 import Data.Aeson.Tagged
-import Data.Text (Text)
 import Data.Aeson.Types (Result(..))
 
 import Test.Hspec
@@ -18,25 +17,29 @@ spec = do
     defaultDefinitionsSpec
 
 ----------------------------------------------------------------------------
+-- Tags
+----------------------------------------------------------------------------
+
+data Test
+
+----------------------------------------------------------------------------
 -- FromJSON and ToJSON default definitions
 ----------------------------------------------------------------------------
 
 defaultDefinitionsSpec :: Spec
 defaultDefinitionsSpec = describe "FromJSON and ToJSON default definitions" $ do
     it "parseJSONList" $ do
-        parse (parseJSONList @Modded @Text) [value|["a"]|]
-            `shouldBe` Error "expected modded text"
-        parse (parseJSONList @Modded @Text) [value|["modded:a", "modded:b"]|]
-            `shouldBe` Success ["a", "b"]
+        parse (parseJSONList @Test @Int') [value|[1,2]|]
+            `shouldBe` Success [1, 2]
 
     it "toEncoding" $ do
-        toEncoding @Modded @Text "a"
-            `shouldBe` [encoding|"modded:a"|]
+        toEncoding @Test @Int' 1
+            `shouldBe` [encoding|1|]
 
     it "toJSONList" $ do
-        listToJSON @Modded @Text ["a"]
-            `shouldBe` [value|["modded:a"]|]
+        listToJSON @Test @Int' [1, 2]
+            `shouldBe` [value|[1,2]|]
 
     it "toEncodingList" $ do
-        listToEncoding @Modded @Text ["a"]
-            `shouldBe` [encoding|["modded:a"]|]
+        listToEncoding @Test @Int' [1, 2]
+            `shouldBe` [encoding|[1,2]|]

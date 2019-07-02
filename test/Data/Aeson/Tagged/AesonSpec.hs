@@ -23,6 +23,12 @@ spec = do
 -- TODO: Does "deriving via WithAeson1" work? On stuff that has FromJSON1? On Set and HashSet?
 
 ----------------------------------------------------------------------------
+-- Tags
+----------------------------------------------------------------------------
+
+data Test
+
+----------------------------------------------------------------------------
 -- parseJSON @Aeson and toJSON @Aeson
 ----------------------------------------------------------------------------
 
@@ -43,9 +49,9 @@ aesonTypeAnnotationSpec = describe "@Aeson type annotation" $ do
 taggedAesonSpec :: Spec
 taggedAesonSpec = describe "TaggedAeson" $ do
     it "works with 'decode'" $ do
-        fromTaggedAeson @Modded <$> A.decode "\"modded:a\""
-            `shouldBe` Just ("a" :: Text)
+        fromTaggedAeson @Test <$> A.decode "1"
+            `shouldBe` Just (1 :: Int')
 
     it "works with 'encode'" $ do
-        A.encode (TaggedAeson @Modded ("a" :: Text))
-            `shouldBe` "\"modded:a\""
+        A.encode (TaggedAeson @Test (1 :: Int'))
+            `shouldBe` "1"
