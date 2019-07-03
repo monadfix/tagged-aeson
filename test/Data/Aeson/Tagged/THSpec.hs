@@ -34,12 +34,12 @@ spec = describe "Template Haskell deriving" $ do
     thEnumSpec
     thADTSpec
     thRecordSpec
+    thADTRecordSpec
 
 -- TODO: use more tests from Aeson itself
 
 -- TODO: other 'Options'
 -- TODO: records with optional fields
--- TODO: sumtype record
 -- TODO: for fields that are lists, we want to make sure they require and use a [] instance
 
 -- TODO: port all tests from https://github.com/bos/aeson/blob/master/tests/Encoders.hs
@@ -192,18 +192,35 @@ thADTSpec = describe "THADT (ADT datatype)" $ do
     hedgehogSpec genTHADT
 
 ----------------------------------------------------------------------------
--- Record with type variables
+-- Record
 ----------------------------------------------------------------------------
 
-data THRecord a b = THRecord {fieldA :: a, fieldB :: b}
+data THRecord a b = THRecord {rec1 :: a, rec2 :: b}
     deriving stock (Eq, Show)
 
 genTHRecord :: Gen (THRecord Int' Int')
 genTHRecord = THRecord <$> genInt' <*> genInt'
 
 thRecordSpec :: Spec
-thRecordSpec = describe "THRecord (record with type variables)" $ do
+thRecordSpec = describe "THRecord (record)" $ do
     hedgehogSpec genTHRecord
+
+----------------------------------------------------------------------------
+-- ADT with a record branch
+----------------------------------------------------------------------------
+
+data THADTRecord a = THADTRecord1 a | THADTRecord2 {rec'1, rec'2 :: a}
+    deriving stock (Eq, Show)
+
+genTHADTRecord :: Gen (THADTRecord Int')
+genTHADTRecord = Gen.choice
+    [ THADTRecord1 <$> genInt'
+    , THADTRecord2 <$> genInt' <*> genInt'
+    ]
+
+thADTRecordSpec :: Spec
+thADTRecordSpec = describe "THADTRecord (ADT with a record branch)" $ do
+    hedgehogSpec genTHADTRecord
 
 ----------------------------------------------------------------------------
 -- Instances
@@ -274,3 +291,20 @@ instance ToJSON Golden (THRecord Int' Int') where
     toEncoding =
         coerce @(THRecord Int Int -> A.Encoding)
         $(A.mkToEncoding A.defaultOptions ''THRecord)
+
+--
+
+deriveJSON [t|Derived|] A.defaultOptions ''THADTRecord
+
+instance FromJSON Golden (THADTRecord Int') where
+    parseJSON =
+        coerce @(A.Value -> A.Parser (THADTRecord Int))
+        $(A.mkParseJSON A.defaultOptions ''THADTRecord)
+
+instance ToJSON Golden (THADTRecord Int') where
+    toJSON =
+        coerce @(THADTRecord Int -> A.Value)
+        $(A.mkToJSON A.defaultOptions ''THADTRecord)
+    toEncoding =
+        coerce @(THADTRecord Int -> A.Encoding)
+        $(A.mkToEncoding A.defaultOptions ''THADTRecord)
