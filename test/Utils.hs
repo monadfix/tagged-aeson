@@ -4,6 +4,7 @@
 module Utils
 (
     parse,
+    parseEither,
     value,
     encoding,
 
@@ -24,6 +25,9 @@ import Language.Haskell.TH.Quote
 
 parse :: forall tag b a. (a -> Parser tag b) -> a -> A.Result b
 parse = coerce (A.parse @a @b)
+
+parseEither :: forall tag b a. (a -> Parser tag b) -> a -> Either String b
+parseEither = coerce (A.parseEither @a @b)
 
 -- | 'Value' quasi-quoter.
 value :: QuasiQuoter
