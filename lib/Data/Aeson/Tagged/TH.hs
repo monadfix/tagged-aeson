@@ -4,6 +4,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
 
+-- TODO: what about the following plan?
+--
+-- 1. Make a list of all functions in Aeson.TH and its imports that have FromJSON/ToJSON
+-- 2. Grep all |] and 'Name, make a list of comparisons
+-- 3. Replace all those functions
+-- 4. Use coerce in the end
+
 module Data.Aeson.Tagged.TH
 (
     deriveJSON,

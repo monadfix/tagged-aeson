@@ -1,4 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Utils
@@ -12,6 +14,13 @@ module Utils
     opts2ElemArray,
     optsTaggedObject,
     optsObjectWithSingleField,
+    optsTagSingleConstructors,
+    -- ** 'Flavor'
+    Flavor(..),
+    SFlavor(..),
+    mkParseJSONFlavor,
+    mkToJSONFlavor,
+    mkToEncodingFlavor,
 )
 where
 
@@ -21,7 +30,9 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
+import qualified Data.Aeson.TH as A
 import Language.Haskell.TH.Quote
+import Language.Haskell.TH
 
 parse :: forall tag b a. (a -> Parser tag b) -> a -> A.Result b
 parse = coerce (A.parse @a @b)
@@ -55,6 +66,8 @@ encoding = QuasiQuoter
 
 ----------------------------------------------------------------------------
 -- Options
+--
+-- See https://github.com/bos/aeson/blob/master/tests/Options.hs
 ----------------------------------------------------------------------------
 
 optsBase :: A.Options
@@ -79,3 +92,57 @@ optsObjectWithSingleField = optsBase
     { A.allNullaryToStringTag = False
     , A.sumEncoding           = A.ObjectWithSingleField
     }
+
+optsTagSingleConstructors :: A.Options
+optsTagSingleConstructors = optsBase
+    { A.tagSingleConstructors = True
+    , A.allNullaryToStringTag = False
+    }
+
+----------------------------------------------------------------------------
+-- Flavor
+----------------------------------------------------------------------------
+
+data Flavor
+    = FDefault
+    | F2ElemArray
+    | FTaggedObject
+    | FObjectWithSingleField
+    | FTagSingleConstructors
+
+class SFlavor (k :: Flavor) where flavor :: Flavor
+instance SFlavor 'FDefault where flavor = FDefault
+instance SFlavor 'F2ElemArray where flavor = F2ElemArray
+instance SFlavor 'FTaggedObject where flavor = FTaggedObject
+instance SFlavor 'FObjectWithSingleField where flavor = FObjectWithSingleField
+instance SFlavor 'FTagSingleConstructors where flavor = FTagSingleConstructors
+
+mkParseJSONFlavor :: Name -> Q Exp
+mkParseJSONFlavor name =
+    [| \case
+            FDefault -> $(A.mkParseJSON A.defaultOptions name)
+            F2ElemArray -> $(A.mkParseJSON opts2ElemArray name)
+            FTaggedObject -> $(A.mkParseJSON optsTaggedObject name)
+            FObjectWithSingleField -> $(A.mkParseJSON optsObjectWithSingleField name)
+            FTagSingleConstructors -> $(A.mkParseJSON optsTagSingleConstructors name)
+     |]
+
+mkToJSONFlavor :: Name -> Q Exp
+mkToJSONFlavor name =
+    [| \case
+            FDefault -> $(A.mkToJSON A.defaultOptions name)
+            F2ElemArray -> $(A.mkToJSON opts2ElemArray name)
+            FTaggedObject -> $(A.mkToJSON optsTaggedObject name)
+            FObjectWithSingleField -> $(A.mkToJSON optsObjectWithSingleField name)
+            FTagSingleConstructors -> $(A.mkToJSON optsTagSingleConstructors name)
+     |]
+
+mkToEncodingFlavor :: Name -> Q Exp
+mkToEncodingFlavor name =
+    [| \case
+            FDefault -> $(A.mkToEncoding A.defaultOptions name)
+            F2ElemArray -> $(A.mkToEncoding opts2ElemArray name)
+            FTaggedObject -> $(A.mkToEncoding optsTaggedObject name)
+            FObjectWithSingleField -> $(A.mkToEncoding optsObjectWithSingleField name)
+            FTagSingleConstructors -> $(A.mkToEncoding optsTagSingleConstructors name)
+     |]

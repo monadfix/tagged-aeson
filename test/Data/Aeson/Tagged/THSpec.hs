@@ -13,7 +13,6 @@ module Data.Aeson.Tagged.THSpec (spec) where
 import BasePrelude
 import Data.Aeson.Tagged
 import qualified Data.Aeson as A
-import qualified Data.Aeson.TH as A
 import qualified Data.Aeson.Encoding as A
 import qualified Data.Aeson.Types as A
 
@@ -35,8 +34,10 @@ spec = describe "Template Haskell deriving" $ do
     thADTSpec
     thRecordSpec
     thADTRecordSpec
+    oneConstructorSpec
 
 -- TODO: use more tests from Aeson itself
+-- TODO: reuse Aeson test types and names
 
 -- TODO: records with optional fields
 -- TODO: for fields that are lists, we want to make sure they require and use a [] instance
@@ -45,8 +46,6 @@ spec = describe "Template Haskell deriving" $ do
 
 -- TODO: which instance will be used for lists?
 -- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble
-
--- TODO: make sure 'parse2ElemArray' is also exercised
 
 -- TODO: make sure the 'conKey' hack doesn't interfere with parsing of
 -- record fields named "conKey"
@@ -61,14 +60,6 @@ data Derived (k :: Flavor)
 -- | A tag for correct instances, either written manually or derived with
 -- Aeson's help.
 data Golden (k :: Flavor)
-
-data Flavor = FDefault | F2ElemArray | FTaggedObject | FObjectWithSingleField
-
-class SFlavor (k :: Flavor) where flavor :: Flavor
-instance SFlavor 'FDefault where flavor = FDefault
-instance SFlavor 'F2ElemArray where flavor = F2ElemArray
-instance SFlavor 'FTaggedObject where flavor = FTaggedObject
-instance SFlavor 'FObjectWithSingleField where flavor = FObjectWithSingleField
 
 ----------------------------------------------------------------------------
 -- Hedgehog properties
@@ -272,6 +263,23 @@ thADTRecordSpec = describe "THADTRecord (ADT with a record branch)" $ do
         hedgehogSpec @'FObjectWithSingleField genTHADTRecord
 
 ----------------------------------------------------------------------------
+-- Unit type
+----------------------------------------------------------------------------
+
+data OneConstructor = OneConstructor
+    deriving stock (Eq, Show)
+
+genOneConstructor :: Gen OneConstructor
+genOneConstructor = pure OneConstructor
+
+oneConstructorSpec :: Spec
+oneConstructorSpec = describe "OneConstructor (unit type)" $ do
+    describe "defaultOptions" $
+        hedgehogSpec @'FDefault genOneConstructor
+    describe "optsObjectWithSingleField" $
+        hedgehogSpec @'FTagSingleConstructors genOneConstructor
+
+----------------------------------------------------------------------------
 -- Options
 ----------------------------------------------------------------------------
 
@@ -293,25 +301,13 @@ deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''THSi
 
 instance SFlavor k => FromJSON (Golden k) (THSingle Int') where
     parseJSON = coerce @(A.Value -> A.Parser (THSingle Int)) $
-        case flavor @k of
-            FDefault -> $(A.mkParseJSON A.defaultOptions ''THSingle)
-            F2ElemArray -> $(A.mkParseJSON opts2ElemArray ''THSingle)
-            FTaggedObject -> $(A.mkParseJSON optsTaggedObject ''THSingle)
-            FObjectWithSingleField -> $(A.mkParseJSON optsObjectWithSingleField ''THSingle)
+        $(mkParseJSONFlavor ''THSingle) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) (THSingle Int') where
     toJSON = coerce @(THSingle Int -> A.Value) $
-        case flavor @k of
-            FDefault -> $(A.mkToJSON A.defaultOptions ''THSingle)
-            F2ElemArray -> $(A.mkToJSON opts2ElemArray ''THSingle)
-            FTaggedObject -> $(A.mkToJSON optsTaggedObject ''THSingle)
-            FObjectWithSingleField -> $(A.mkToJSON optsObjectWithSingleField ''THSingle)
+        $(mkToJSONFlavor ''THSingle) (flavor @k)
     toEncoding = coerce @(THSingle Int -> A.Encoding) $
-        case flavor @k of
-            FDefault -> $(A.mkToEncoding A.defaultOptions ''THSingle)
-            F2ElemArray -> $(A.mkToEncoding opts2ElemArray ''THSingle)
-            FTaggedObject -> $(A.mkToEncoding optsTaggedObject ''THSingle)
-            FObjectWithSingleField -> $(A.mkToEncoding optsObjectWithSingleField ''THSingle)
+        $(mkToEncodingFlavor ''THSingle) (flavor @k)
 
 ----------------------------------------------------------------------------
 -- THEnum instances
@@ -324,25 +320,13 @@ deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''THEn
 
 instance SFlavor k => FromJSON (Golden k) THEnum where
     parseJSON = coerce @(A.Value -> A.Parser THEnum) $
-        case flavor @k of
-            FDefault -> $(A.mkParseJSON A.defaultOptions ''THEnum)
-            F2ElemArray -> $(A.mkParseJSON opts2ElemArray ''THEnum)
-            FTaggedObject -> $(A.mkParseJSON optsTaggedObject ''THEnum)
-            FObjectWithSingleField -> $(A.mkParseJSON optsObjectWithSingleField ''THEnum)
+        $(mkParseJSONFlavor ''THEnum) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) THEnum where
     toJSON = coerce @(THEnum -> A.Value) $
-        case flavor @k of
-            FDefault -> $(A.mkToJSON A.defaultOptions ''THEnum)
-            F2ElemArray -> $(A.mkToJSON opts2ElemArray ''THEnum)
-            FTaggedObject -> $(A.mkToJSON optsTaggedObject ''THEnum)
-            FObjectWithSingleField -> $(A.mkToJSON optsObjectWithSingleField ''THEnum)
+        $(mkToJSONFlavor ''THEnum) (flavor @k)
     toEncoding = coerce @(THEnum -> A.Encoding) $
-        case flavor @k of
-            FDefault -> $(A.mkToEncoding A.defaultOptions ''THEnum)
-            F2ElemArray -> $(A.mkToEncoding opts2ElemArray ''THEnum)
-            FTaggedObject -> $(A.mkToEncoding optsTaggedObject ''THEnum)
-            FObjectWithSingleField -> $(A.mkToEncoding optsObjectWithSingleField ''THEnum)
+        $(mkToEncodingFlavor ''THEnum) (flavor @k)
 
 ----------------------------------------------------------------------------
 -- THADT instances
@@ -355,25 +339,13 @@ deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''THAD
 
 instance SFlavor k => FromJSON (Golden k) (THADT Int') where
     parseJSON = coerce @(A.Value -> A.Parser (THADT Int)) $
-        case flavor @k of
-            FDefault -> $(A.mkParseJSON A.defaultOptions ''THADT)
-            F2ElemArray -> $(A.mkParseJSON opts2ElemArray ''THADT)
-            FTaggedObject -> $(A.mkParseJSON optsTaggedObject ''THADT)
-            FObjectWithSingleField -> $(A.mkParseJSON optsObjectWithSingleField ''THADT)
+        $(mkParseJSONFlavor ''THADT) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) (THADT Int') where
     toJSON = coerce @(THADT Int -> A.Value) $
-        case flavor @k of
-            FDefault -> $(A.mkToJSON A.defaultOptions ''THADT)
-            F2ElemArray -> $(A.mkToJSON opts2ElemArray ''THADT)
-            FTaggedObject -> $(A.mkToJSON optsTaggedObject ''THADT)
-            FObjectWithSingleField -> $(A.mkToJSON optsObjectWithSingleField ''THADT)
+        $(mkToJSONFlavor ''THADT) (flavor @k)
     toEncoding = coerce @(THADT Int -> A.Encoding) $
-        case flavor @k of
-            FDefault -> $(A.mkToEncoding A.defaultOptions ''THADT)
-            F2ElemArray -> $(A.mkToEncoding opts2ElemArray ''THADT)
-            FTaggedObject -> $(A.mkToEncoding optsTaggedObject ''THADT)
-            FObjectWithSingleField -> $(A.mkToEncoding optsObjectWithSingleField ''THADT)
+        $(mkToEncodingFlavor ''THADT) (flavor @k)
 
 ----------------------------------------------------------------------------
 -- THRecord instances
@@ -386,25 +358,13 @@ deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''THRe
 
 instance SFlavor k => FromJSON (Golden k) (THRecord Int') where
     parseJSON = coerce @(A.Value -> A.Parser (THRecord Int)) $
-        case flavor @k of
-            FDefault -> $(A.mkParseJSON A.defaultOptions ''THRecord)
-            F2ElemArray -> $(A.mkParseJSON opts2ElemArray ''THRecord)
-            FTaggedObject -> $(A.mkParseJSON optsTaggedObject ''THRecord)
-            FObjectWithSingleField -> $(A.mkParseJSON optsObjectWithSingleField ''THRecord)
+        $(mkParseJSONFlavor ''THRecord) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) (THRecord Int') where
     toJSON = coerce @(THRecord Int -> A.Value) $
-        case flavor @k of
-            FDefault -> $(A.mkToJSON A.defaultOptions ''THRecord)
-            F2ElemArray -> $(A.mkToJSON opts2ElemArray ''THRecord)
-            FTaggedObject -> $(A.mkToJSON optsTaggedObject ''THRecord)
-            FObjectWithSingleField -> $(A.mkToJSON optsObjectWithSingleField ''THRecord)
+        $(mkToJSONFlavor ''THRecord) (flavor @k)
     toEncoding = coerce @(THRecord Int -> A.Encoding) $
-        case flavor @k of
-            FDefault -> $(A.mkToEncoding A.defaultOptions ''THRecord)
-            F2ElemArray -> $(A.mkToEncoding opts2ElemArray ''THRecord)
-            FTaggedObject -> $(A.mkToEncoding optsTaggedObject ''THRecord)
-            FObjectWithSingleField -> $(A.mkToEncoding optsObjectWithSingleField ''THRecord)
+        $(mkToEncodingFlavor ''THRecord) (flavor @k)
 
 ----------------------------------------------------------------------------
 -- THADTRecord instances
@@ -417,22 +377,27 @@ deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''THAD
 
 instance SFlavor k => FromJSON (Golden k) (THADTRecord Int') where
     parseJSON = coerce @(A.Value -> A.Parser (THADTRecord Int)) $
-        case flavor @k of
-            FDefault -> $(A.mkParseJSON A.defaultOptions ''THADTRecord)
-            F2ElemArray -> $(A.mkParseJSON opts2ElemArray ''THADTRecord)
-            FTaggedObject -> $(A.mkParseJSON optsTaggedObject ''THADTRecord)
-            FObjectWithSingleField -> $(A.mkParseJSON optsObjectWithSingleField ''THADTRecord)
+        $(mkParseJSONFlavor ''THADTRecord) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) (THADTRecord Int') where
     toJSON = coerce @(THADTRecord Int -> A.Value) $
-        case flavor @k of
-            FDefault -> $(A.mkToJSON A.defaultOptions ''THADTRecord)
-            F2ElemArray -> $(A.mkToJSON opts2ElemArray ''THADTRecord)
-            FTaggedObject -> $(A.mkToJSON optsTaggedObject ''THADTRecord)
-            FObjectWithSingleField -> $(A.mkToJSON optsObjectWithSingleField ''THADTRecord)
+        $(mkToJSONFlavor ''THADTRecord) (flavor @k)
     toEncoding = coerce @(THADTRecord Int -> A.Encoding) $
-        case flavor @k of
-            FDefault -> $(A.mkToEncoding A.defaultOptions ''THADTRecord)
-            F2ElemArray -> $(A.mkToEncoding opts2ElemArray ''THADTRecord)
-            FTaggedObject -> $(A.mkToEncoding optsTaggedObject ''THADTRecord)
-            FObjectWithSingleField -> $(A.mkToEncoding optsObjectWithSingleField ''THADTRecord)
+        $(mkToEncodingFlavor ''THADTRecord) (flavor @k)
+
+----------------------------------------------------------------------------
+-- OneConstructor instances
+----------------------------------------------------------------------------
+
+deriveJSON [t|Derived 'FDefault|] A.defaultOptions ''OneConstructor
+deriveJSON [t|Derived 'FTagSingleConstructors|] optsTagSingleConstructors ''OneConstructor
+
+instance SFlavor k => FromJSON (Golden k) OneConstructor where
+    parseJSON = coerce @(A.Value -> A.Parser OneConstructor) $
+        $(mkParseJSONFlavor ''OneConstructor) (flavor @k)
+
+instance SFlavor k => ToJSON (Golden k) OneConstructor where
+    toJSON = coerce @(OneConstructor -> A.Value) $
+        $(mkToJSONFlavor ''OneConstructor) (flavor @k)
+    toEncoding = coerce @(OneConstructor -> A.Encoding) $
+        $(mkToEncodingFlavor ''OneConstructor) (flavor @k)
