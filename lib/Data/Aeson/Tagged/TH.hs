@@ -82,6 +82,8 @@ aesonToTaggedAesonTH tag =
     transformBi rewriteInfix .
     transformBi rewriteTagDecoding
 
+-- TODO: grep for all [| |] in Data.Aeson.TH
+
 ----------------------------------------------------------------------------
 -- Replace classes and types
 ----------------------------------------------------------------------------
@@ -151,6 +153,8 @@ rewriteExp tag = \case
         , ('E.text           , 'encoding_text)
         , ('E.comma          , 'encoding_comma)
         , ('(E.><)           , 'encoding_append)
+        , ('E.emptyObject_   , 'encoding_emptyObject_)
+        , ('E.emptyArray_    , 'encoding_emptyArray_)
         , ('E.wrapObject     , 'encoding_wrapObject)
         , ('E.wrapArray      , 'encoding_wrapArray)
         -- unsupported
@@ -215,6 +219,14 @@ encoding_comma = coerce E.comma
 encoding_append :: Encoding tag -> Encoding tag -> Encoding tag
 encoding_append = coerce (E.><)
 {-# INLINE encoding_append #-}
+
+encoding_emptyObject_ :: Encoding tag
+encoding_emptyObject_ = coerce E.emptyObject_
+{-# INLINE encoding_emptyObject_ #-}
+
+encoding_emptyArray_ :: Encoding tag
+encoding_emptyArray_ = coerce E.emptyArray_
+{-# INLINE encoding_emptyArray_ #-}
 
 encoding_wrapObject :: Encoding tag -> Encoding tag
 encoding_wrapObject = coerce E.wrapObject

@@ -6,6 +6,11 @@ module Utils
     parse,
     value,
     encoding,
+
+    -- * Options
+    opts2ElemArray,
+    optsTaggedObject,
+    optsObjectWithSingleField,
 )
 where
 
@@ -42,4 +47,31 @@ encoding = QuasiQuoter
     , quotePat  = const $ error "No quotePat defined for encoding"
     , quoteType = const $ error "No quoteType defined for encoding"
     , quoteDec  = const $ error "No quoteDec defined for encoding"
+    }
+
+----------------------------------------------------------------------------
+-- Options
+----------------------------------------------------------------------------
+
+optsBase :: A.Options
+optsBase = A.defaultOptions
+    { A.fieldLabelModifier     = map toLower
+    , A.constructorTagModifier = map toLower
+    }
+
+opts2ElemArray :: A.Options
+opts2ElemArray = optsBase
+    { A.allNullaryToStringTag = False
+    , A.sumEncoding = A.TwoElemArray
+    }
+
+optsTaggedObject :: A.Options
+optsTaggedObject = optsBase
+    { A.allNullaryToStringTag = False
+    }
+
+optsObjectWithSingleField :: A.Options
+optsObjectWithSingleField = optsBase
+    { A.allNullaryToStringTag = False
+    , A.sumEncoding           = A.ObjectWithSingleField
     }
