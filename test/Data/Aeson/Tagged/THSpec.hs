@@ -30,7 +30,7 @@ spec = describe "Template Haskell deriving" $ do
     -- Note: we are not testing 'deriveFromJSON' and 'deriveToJSON' because
     -- they are more-or-less tested as part of testing 'deriveJSON'
     thSingleSpec
-    thEnumSpec
+    nullarySpec
     thADTSpec
     thRecordSpec
     thADTRecordSpec
@@ -176,25 +176,25 @@ thSingleSpec = describe "THSingle (wrapping one field)" $ do
         hedgehogSpec @'FObjectWithSingleField genTHSingle
 
 ----------------------------------------------------------------------------
--- Enum
+-- Enum type
 ----------------------------------------------------------------------------
 
-data THEnum = THEnum1 | THEnum2
+data Nullary = C1 | C2 | C3
     deriving stock (Eq, Show)
 
-genTHEnum :: Gen THEnum
-genTHEnum = Gen.element [THEnum1, THEnum2]
+genNullary :: Gen Nullary
+genNullary = Gen.element [C1, C2, C3]
 
-thEnumSpec :: Spec
-thEnumSpec = describe "THEnum (enum datatype)" $ do
+nullarySpec :: Spec
+nullarySpec = describe "Nullary (enum type)" $ do
     describe "defaultOptions" $
-        hedgehogSpec @'FDefault genTHEnum
+        hedgehogSpec @'FDefault genNullary
     describe "opts2ElemArray" $
-        hedgehogSpec @'F2ElemArray genTHEnum
+        hedgehogSpec @'F2ElemArray genNullary
     describe "optsTaggedObject" $
-        hedgehogSpec @'FTaggedObject genTHEnum
+        hedgehogSpec @'FTaggedObject genNullary
     describe "optsObjectWithSingleField" $
-        hedgehogSpec @'FObjectWithSingleField genTHEnum
+        hedgehogSpec @'FObjectWithSingleField genNullary
 
 ----------------------------------------------------------------------------
 -- ADT
@@ -310,23 +310,23 @@ instance SFlavor k => ToJSON (Golden k) (THSingle Int') where
         $(mkToEncodingFlavor ''THSingle) (flavor @k)
 
 ----------------------------------------------------------------------------
--- THEnum instances
+-- Nullary instances
 ----------------------------------------------------------------------------
 
-deriveJSON [t|Derived 'FDefault|] A.defaultOptions ''THEnum
-deriveJSON [t|Derived 'F2ElemArray|] opts2ElemArray ''THEnum
-deriveJSON [t|Derived 'FTaggedObject|] optsTaggedObject ''THEnum
-deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''THEnum
+deriveJSON [t|Derived 'FDefault|] A.defaultOptions ''Nullary
+deriveJSON [t|Derived 'F2ElemArray|] opts2ElemArray ''Nullary
+deriveJSON [t|Derived 'FTaggedObject|] optsTaggedObject ''Nullary
+deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''Nullary
 
-instance SFlavor k => FromJSON (Golden k) THEnum where
-    parseJSON = coerce @(A.Value -> A.Parser THEnum) $
-        $(mkParseJSONFlavor ''THEnum) (flavor @k)
+instance SFlavor k => FromJSON (Golden k) Nullary where
+    parseJSON = coerce @(A.Value -> A.Parser Nullary) $
+        $(mkParseJSONFlavor ''Nullary) (flavor @k)
 
-instance SFlavor k => ToJSON (Golden k) THEnum where
-    toJSON = coerce @(THEnum -> A.Value) $
-        $(mkToJSONFlavor ''THEnum) (flavor @k)
-    toEncoding = coerce @(THEnum -> A.Encoding) $
-        $(mkToEncodingFlavor ''THEnum) (flavor @k)
+instance SFlavor k => ToJSON (Golden k) Nullary where
+    toJSON = coerce @(Nullary -> A.Value) $
+        $(mkToJSONFlavor ''Nullary) (flavor @k)
+    toEncoding = coerce @(Nullary -> A.Encoding) $
+        $(mkToEncodingFlavor ''Nullary) (flavor @k)
 
 ----------------------------------------------------------------------------
 -- THADT instances
