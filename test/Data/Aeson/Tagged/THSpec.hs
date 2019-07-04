@@ -35,6 +35,7 @@ spec = describe "Template Haskell deriving" $ do
     thRecordSpec
     thADTRecordSpec
     oneConstructorSpec
+    eitherTextIntSpec
 
 -- TODO: use more tests from Aeson itself
 -- TODO: reuse Aeson test types and names
@@ -282,13 +283,38 @@ oneConstructorSpec = describe "OneConstructor (unit type)" $ do
         hedgehogSpec @'FTagSingleConstructors genOneConstructor
 
 ----------------------------------------------------------------------------
+-- EitherTextInt
+----------------------------------------------------------------------------
+
+data EitherTextInt
+    = LeftBool Bool'             -- Bool is not a typo (Aeson tests have the same)
+    | RightInt Int'
+    | BothTextInt Text' Int'
+    | NoneNullary
+    deriving stock (Eq, Show)
+
+genEitherTextInt :: Gen EitherTextInt
+genEitherTextInt = Gen.choice
+    [ LeftBool <$> genBool'
+    , RightInt <$> genInt'
+    , BothTextInt <$> genText' <*> genInt'
+    , pure NoneNullary
+    ]
+
+eitherTextIntSpec :: Spec
+eitherTextIntSpec = describe "EitherTextInt" $ do
+    describe "defaultOptions" $
+        hedgehogSpec @'FDefault genEitherTextInt
+    describe "optsUntaggedValue" $
+        hedgehogSpec @'FUntaggedValue genEitherTextInt
+
+----------------------------------------------------------------------------
 -- Options
 ----------------------------------------------------------------------------
 
 -- TODO reexport 'Options' and some other things from tagged-aeson
 
 -- TODO tests in Aeson also use:
---   optsUntaggedValue
 --   optsUnwrapUnaryRecords
 --   optsTagSingleConstructors
 
@@ -403,3 +429,23 @@ instance SFlavor k => ToJSON (Golden k) OneConstructor where
         $(mkToJSONFlavor ''OneConstructor) (flavor @k)
     toEncoding = coerce @(OneConstructor -> A.Encoding) $
         $(mkToEncodingFlavor ''OneConstructor) (flavor @k)
+
+----------------------------------------------------------------------------
+-- EitherTextInt instances
+----------------------------------------------------------------------------
+
+deriveJSON [t|Derived 'FDefault|] A.defaultOptions ''EitherTextInt
+deriveJSON [t|Derived 'FUntaggedValue|] optsUntaggedValue ''EitherTextInt
+
+instance SFlavor k => FromJSON (Golden k) EitherTextInt where
+    parseJSON = coerce @(A.Value -> A.Parser EitherTextInt) $
+        withLocalAesonInstances $
+        $(mkParseJSONFlavor ''EitherTextInt) (flavor @k)
+
+instance SFlavor k => ToJSON (Golden k) EitherTextInt where
+    toJSON = coerce @(EitherTextInt -> A.Value) $
+        withLocalAesonInstances $
+        $(mkToJSONFlavor ''EitherTextInt) (flavor @k)
+    toEncoding = coerce @(EitherTextInt -> A.Encoding) $
+        withLocalAesonInstances $
+        $(mkToEncodingFlavor ''EitherTextInt) (flavor @k)

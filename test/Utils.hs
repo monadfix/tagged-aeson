@@ -15,6 +15,7 @@ module Utils
     optsTaggedObject,
     optsObjectWithSingleField,
     optsTagSingleConstructors,
+    optsUntaggedValue,
     -- ** 'Flavor'
     Flavor(..),
     SFlavor(..),
@@ -99,6 +100,11 @@ optsTagSingleConstructors = optsBase
     , A.allNullaryToStringTag = False
     }
 
+optsUntaggedValue :: A.Options
+optsUntaggedValue = optsBase
+    { A.sumEncoding = A.UntaggedValue
+    }
+
 ----------------------------------------------------------------------------
 -- Flavor
 ----------------------------------------------------------------------------
@@ -109,6 +115,7 @@ data Flavor
     | FTaggedObject
     | FObjectWithSingleField
     | FTagSingleConstructors
+    | FUntaggedValue
 
 class SFlavor (k :: Flavor) where flavor :: Flavor
 instance SFlavor 'FDefault where flavor = FDefault
@@ -116,6 +123,7 @@ instance SFlavor 'F2ElemArray where flavor = F2ElemArray
 instance SFlavor 'FTaggedObject where flavor = FTaggedObject
 instance SFlavor 'FObjectWithSingleField where flavor = FObjectWithSingleField
 instance SFlavor 'FTagSingleConstructors where flavor = FTagSingleConstructors
+instance SFlavor 'FUntaggedValue where flavor = FUntaggedValue
 
 mkParseJSONFlavor :: Name -> Q Exp
 mkParseJSONFlavor name =
@@ -125,6 +133,7 @@ mkParseJSONFlavor name =
             FTaggedObject -> $(A.mkParseJSON optsTaggedObject name)
             FObjectWithSingleField -> $(A.mkParseJSON optsObjectWithSingleField name)
             FTagSingleConstructors -> $(A.mkParseJSON optsTagSingleConstructors name)
+            FUntaggedValue -> $(A.mkParseJSON optsUntaggedValue name)
      |]
 
 mkToJSONFlavor :: Name -> Q Exp
@@ -135,6 +144,7 @@ mkToJSONFlavor name =
             FTaggedObject -> $(A.mkToJSON optsTaggedObject name)
             FObjectWithSingleField -> $(A.mkToJSON optsObjectWithSingleField name)
             FTagSingleConstructors -> $(A.mkToJSON optsTagSingleConstructors name)
+            FUntaggedValue -> $(A.mkToJSON optsUntaggedValue name)
      |]
 
 mkToEncodingFlavor :: Name -> Q Exp
@@ -145,4 +155,5 @@ mkToEncodingFlavor name =
             FTaggedObject -> $(A.mkToEncoding optsTaggedObject name)
             FObjectWithSingleField -> $(A.mkToEncoding optsObjectWithSingleField name)
             FTagSingleConstructors -> $(A.mkToEncoding optsTagSingleConstructors name)
+            FUntaggedValue -> $(A.mkToEncoding optsUntaggedValue name)
      |]

@@ -43,6 +43,7 @@ tests:
       - tagged-aeson
       - hedgehog
       - hw-hspec-hedgehog
+      - constraints
 
 dependencies:
   - base >=4.8 && <5
