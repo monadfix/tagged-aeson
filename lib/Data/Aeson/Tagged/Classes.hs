@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | Tagged analogs of 'A.FromJSON' and 'A.ToJSON' from Aeson.
@@ -21,6 +22,7 @@ import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.Internal as A
 import qualified Data.Aeson.Encoding as E
 import qualified Data.Aeson.Encoding.Internal as E
+import Type.Errors
 
 import Data.Aeson.Tagged.Wrapped
 
@@ -81,8 +83,19 @@ class ToJSON (tag :: k) a where
     toJSON :: a -> Value tag
 
     toEncoding :: a -> Encoding tag
-    toEncoding = coerce E.value . toJSON @tag
-    {-# INLINE toEncoding #-}
+    -- TODO: the testsuite should check that this actually works. It seems
+    -- like it's a GHC bug that it does.
+    --
+    -- Another GHC bug makes the 'TypeError' solution not work:
+    -- https://gitlab.haskell.org/ghc/ghc/issues/16906
+    default toEncoding :: DelayError
+        ('Text "In tagged-aeson, toEncoding does not have a default definition." ':$$:
+         'Text "Either define it manually, or via toJSON (slower):" ':$$:
+         'Text ">" ':$$:
+         'Text ">  toEncoding = toEncoding . toJSON" ':$$:
+         'Text ">")
+        => a -> Encoding tag
+    toEncoding = error "unreachable"
 
     toJSONList :: [a] -> Value tag
     toJSONList = coerce (A.listValue @a) (toJSON @tag @a)

@@ -32,6 +32,7 @@ library:
     - dlist
     - scientific
     - uniplate
+    - type-errors
 
 tests:
   tests:
@@ -72,6 +73,7 @@ default-extensions:
   - FunctionalDependencies
   - DeriveLift
   - StandaloneDeriving
+  - TypeOperators
 
 ghc-options:
   - -Wall

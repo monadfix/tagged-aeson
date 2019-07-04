@@ -34,8 +34,8 @@ instance A.FromJSON a => FromJSON Aeson a where
 
 instance A.ToJSON a => ToJSON Aeson a where
     toJSON = coerce (A.toJSON @a)
-    toEncoding = coerce (A.toEncoding @a)
     toJSONList = coerce (A.toJSONList @a)
+    toEncoding = coerce (A.toEncoding @a)
     toEncodingList = coerce (A.toEncodingList @a)
 
 ----------------------------------------------------------------------------

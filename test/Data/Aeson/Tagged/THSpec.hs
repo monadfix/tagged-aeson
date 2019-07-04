@@ -46,6 +46,7 @@ spec = describe "Template Haskell deriving" $ do
 
 -- TODO: which instance will be used for lists?
 -- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble
+-- TODO: so what should be the policy for strings?
 
 -- TODO: make sure the 'conKey' hack doesn't interfere with parsing of
 -- record fields named "conKey"

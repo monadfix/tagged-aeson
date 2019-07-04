@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a1dc815eb05d2b8c014348eb6eb33312f1b7d4d7afa3060725cf876d4a72281a
+-- hash: bdfd4827365af4d601699dcbebeb66f4ce7892aad9bbd017923783e9f6fa4d96
 
 name:           tagged-aeson
 version:        1.0.0
@@ -40,7 +40,7 @@ library
       Paths_tagged_aeson
   hs-source-dirs:
       lib
-  default-extensions: ScopedTypeVariables TypeApplications RankNTypes KindSignatures PolyKinds LambdaCase ViewPatterns DefaultSignatures DerivingStrategies FlexibleInstances PatternSynonyms MultiParamTypeClasses FunctionalDependencies DeriveLift StandaloneDeriving
+  default-extensions: ScopedTypeVariables TypeApplications RankNTypes KindSignatures PolyKinds LambdaCase ViewPatterns DefaultSignatures DerivingStrategies FlexibleInstances PatternSynonyms MultiParamTypeClasses FunctionalDependencies DeriveLift StandaloneDeriving TypeOperators
   ghc-options: -Wall -Wno-unused-do-bind
   build-depends:
       aeson
@@ -54,6 +54,7 @@ library
     , template-haskell >=2.12 && <2.15
     , text
     , th-lift
+    , type-errors
     , uniplate
     , unordered-containers
     , vector
@@ -64,7 +65,6 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       Data.Aeson.Tagged.AesonSpec
-      Data.Aeson.Tagged.ClassesSpec
       Data.Aeson.Tagged.ExplicitSpec
       Data.Aeson.Tagged.THSpec
       Types
@@ -72,7 +72,7 @@ test-suite tests
       Paths_tagged_aeson
   hs-source-dirs:
       test
-  default-extensions: ScopedTypeVariables TypeApplications RankNTypes KindSignatures PolyKinds LambdaCase ViewPatterns DefaultSignatures DerivingStrategies FlexibleInstances PatternSynonyms MultiParamTypeClasses FunctionalDependencies DeriveLift StandaloneDeriving
+  default-extensions: ScopedTypeVariables TypeApplications RankNTypes KindSignatures PolyKinds LambdaCase ViewPatterns DefaultSignatures DerivingStrategies FlexibleInstances PatternSynonyms MultiParamTypeClasses FunctionalDependencies DeriveLift StandaloneDeriving TypeOperators
   ghc-options: -Wall -Wno-unused-do-bind
   build-depends:
       aeson
