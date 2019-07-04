@@ -347,13 +347,13 @@ deriveJSON [t|Derived 'FTaggedObject|] optsTaggedObject ''Nullary
 deriveJSON [t|Derived 'FObjectWithSingleField|] optsObjectWithSingleField ''Nullary
 
 instance SFlavor k => FromJSON (Golden k) Nullary where
-    parseJSON = coerce @(A.Value -> A.Parser Nullary) $
+    parseJSON = coerce $
         $(mkParseJSONFlavor ''Nullary) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) Nullary where
-    toJSON = coerce @(Nullary -> A.Value) $
+    toJSON = coerce $
         $(mkToJSONFlavor ''Nullary) (flavor @k)
-    toEncoding = coerce @(Nullary -> A.Encoding) $
+    toEncoding = coerce $
         $(mkToEncodingFlavor ''Nullary) (flavor @k)
 
 ----------------------------------------------------------------------------
@@ -421,13 +421,13 @@ deriveJSON [t|Derived 'FDefault|] A.defaultOptions ''OneConstructor
 deriveJSON [t|Derived 'FTagSingleConstructors|] optsTagSingleConstructors ''OneConstructor
 
 instance SFlavor k => FromJSON (Golden k) OneConstructor where
-    parseJSON = coerce @(A.Value -> A.Parser OneConstructor) $
+    parseJSON = coerce $
         $(mkParseJSONFlavor ''OneConstructor) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) OneConstructor where
-    toJSON = coerce @(OneConstructor -> A.Value) $
+    toJSON = coerce $
         $(mkToJSONFlavor ''OneConstructor) (flavor @k)
-    toEncoding = coerce @(OneConstructor -> A.Encoding) $
+    toEncoding = coerce $
         $(mkToEncodingFlavor ''OneConstructor) (flavor @k)
 
 ----------------------------------------------------------------------------
@@ -438,14 +438,11 @@ deriveJSON [t|Derived 'FDefault|] A.defaultOptions ''EitherTextInt
 deriveJSON [t|Derived 'FUntaggedValue|] optsUntaggedValue ''EitherTextInt
 
 instance SFlavor k => FromJSON (Golden k) EitherTextInt where
-    parseJSON = coerce @(A.Value -> A.Parser EitherTextInt) $
-        withLocalAesonInstances $
+    parseJSON = coerce $ withLocalAesonInstances $
         $(mkParseJSONFlavor ''EitherTextInt) (flavor @k)
 
 instance SFlavor k => ToJSON (Golden k) EitherTextInt where
-    toJSON = coerce @(EitherTextInt -> A.Value) $
-        withLocalAesonInstances $
+    toJSON = coerce $ withLocalAesonInstances $
         $(mkToJSONFlavor ''EitherTextInt) (flavor @k)
-    toEncoding = coerce @(EitherTextInt -> A.Encoding) $
-        withLocalAesonInstances $
+    toEncoding = coerce $ withLocalAesonInstances $
         $(mkToEncodingFlavor ''EitherTextInt) (flavor @k)
