@@ -45,6 +45,7 @@ import Data.Aeson.Tagged.Wrapped
 -- Lists
 ----------------------------------------------------------------------------
 
+-- TODO: an example with String showing how it's different from parseJSONList
 parseList :: forall tag a any. FromJSON tag a => Value any -> Parser tag [a]
 parseList = parseListWith parseJSON
 {-# INLINE parseList #-}

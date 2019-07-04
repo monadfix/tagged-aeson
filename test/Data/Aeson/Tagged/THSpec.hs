@@ -40,13 +40,14 @@ spec = describe "Template Haskell deriving" $ do
 -- TODO: reuse Aeson test types and names
 
 -- TODO: records with optional fields
--- TODO: for fields that are lists, we want to make sure they require and use a [] instance
+
+-- TODO: for fields that are lists, we want to make sure they _do_ require
+-- the [] instance and that TH doesn't detect lists somehow
 
 -- TODO: port all tests from https://github.com/bos/aeson/blob/master/tests/Encoders.hs
 
--- TODO: which instance will be used for lists?
--- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble
--- TODO: so what should be the policy for strings?
+-- TODO: warn that overriding toJSONList and ToJSON [] in different ways will cause trouble;
+-- but first check if it's even possible to override ToJSON []
 
 -- TODO: make sure the 'conKey' hack doesn't interfere with parsing of
 -- record fields named "conKey"

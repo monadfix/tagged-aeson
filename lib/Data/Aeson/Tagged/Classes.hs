@@ -30,8 +30,8 @@ import Data.Aeson.Tagged.Wrapped
 -- FromJSON
 ----------------------------------------------------------------------------
 
--- | tagged-aeson does not provide any 'FromJSON' instances. You have
--- several options for writing them:
+-- | tagged-aeson does not provide any 'FromJSON' instances (TODO: almost).
+-- You have several options for writing them:
 --
 -- __Lift instances from Aeson:__
 --
@@ -44,19 +44,21 @@ import Data.Aeson.Tagged.Wrapped
 --     'parseJSON' = 'using' \@'Aeson' 'parseJSON'
 -- @
 --
--- Note that you should not do this with container types (e.g. lists),
+-- Note that you should not do this with container types (e.g. sets),
 -- because then inner elements would also be parsed according to the Aeson
 -- instance and not your tagged-aeson instance.
+--
+-- TODO: write about lists.
 --
 -- __Use a decoding helper:__
 --
 -- @
--- accounts \<- 'parseList' =\<\< (o '.:' "accounts")
+-- accounts \<- 'parseSet' =\<\< (o '.:' "accounts")
 -- @
 --
 -- @
--- instance FromJSON Tag a => FromJSON Tag [a] where
---     'parseJSON' = 'parseList'
+-- instance FromJSON Tag a => FromJSON Tag (Set a) where
+--     'parseJSON' = 'parseSet'
 -- @
 --
 -- __Derive instances:__
@@ -73,6 +75,10 @@ class FromJSON (tag :: k) a where
 
 instance FromJSON tag (Value any) where
     parseJSON = pure . coerce
+    {-# INLINE parseJSON #-}
+
+instance FromJSON tag a => FromJSON tag [a] where
+    parseJSON = parseJSONList
     {-# INLINE parseJSON #-}
 
 ----------------------------------------------------------------------------
@@ -109,6 +115,14 @@ instance ToJSON tag (Value any) where
     toJSON = coerce
     {-# INLINE toJSON #-}
     toEncoding = coerce E.value
+    {-# INLINE toEncoding #-}
+
+instance ToJSON tag a => ToJSON tag [a] where
+    -- TODO: check if we need SPECIALIZE pragmas. https://github.com/bos/aeson/commit/80b72b3561c8f539fce13ce6d45b26d68a6c60ca
+
+    toJSON = toJSONList
+    {-# INLINE toJSON #-}
+    toEncoding = toEncodingList
     {-# INLINE toEncoding #-}
 
 ----------------------------------------------------------------------------
